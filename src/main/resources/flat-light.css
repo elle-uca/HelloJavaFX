@@ -1,0 +1,73 @@
+.root {
+    -fx-background-color: #f5f6f8;
+    -fx-font-family: "Segoe UI", "Inter", sans-serif;
+}
+
+/* Toolbar */
+.hbox {
+    -fx-background-color: linear-gradient(#ffffff, #eceff3);
+    -fx-border-color: #cfd4dc;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* Buttons */
+.button {
+    -fx-background-radius: 6;
+    -fx-background-color: linear-gradient(#ffffff, #e6e9ef);
+    -fx-border-color: #b9bec7;
+    -fx-border-radius: 6;
+    -fx-text-fill: #202124;
+    -fx-padding: 7 14;
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(#ffffff, #dde3eb);
+}
+
+/* Table */
+.table-view {
+    -fx-background-color: #f5f6f8;
+    -fx-control-inner-background: white;
+    -fx-table-cell-border-color: #d6dae2;
+}
+
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-text-fill: #202124;
+}
+
+.table-row-cell:filled:selected {
+    -fx-background-color: #cfe1ff;
+}
+
+/* Headers */
+.column-header-background {
+    -fx-background-color: linear-gradient(#ffffff, #edf1f7);
+}
+
+.column-header {
+    -fx-border-color: #cfd4dc;
+    -fx-text-fill: #202124;
+}
+
+.table-row-cell.empty-row {
+    -fx-background-color: #3a1414;
+}
+.table-row-cell.empty-row .table-cell {
+    -fx-text-fill: #ff8a8a;
+}
+
+.table-row-cell.tiny-row {
+    -fx-background-color: #3a2a14;
+}
+.table-row-cell.tiny-row .table-cell {
+    -fx-text-fill: #ffd18a;
+}
+
+.table-row-cell.temp-row {
+    -fx-background-color: #141a3a;
+}
+.table-row-cell.temp-row .table-cell {
+    -fx-text-fill: #8ab4ff;
+}
+

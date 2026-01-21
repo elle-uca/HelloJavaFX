@@ -1,8 +1,10 @@
 package org.ln.directorytool;
 
-import java.nio.file.Path;
+import java.util.List;
 
-import javafx.beans.property.SimpleStringProperty;
+import org.ln.directorytool.action.ChooseRootDirCommand;
+import org.ln.directorytool.action.FxActionAdapter;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -19,13 +21,13 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 
 public class DirectoryToolFXView extends BorderPane {
 
-   // private final DirectoryToolController controller;
+   private final DirectoryToolController controller;
 
     private final TextField rootDirField = new TextField();
     private final TextField searchDirField = new TextField();
@@ -44,53 +46,44 @@ public class DirectoryToolFXView extends BorderPane {
     private final Label detailSelLabel = new Label();
 
     private final ProgressBar progress = new ProgressBar();
+    private Stage stage;
+    
+    
+    private final ObservableList<DirectoryScanResult> tableItems =
+            FXCollections.observableArrayList();
 
-    private final ObservableList<Path> dirList = FXCollections.observableArrayList();
 
-    private final TableView<Path> table = new TableView<>(dirList);
+	private final TableView<DirectoryScanResult> table =
+            new TableView<>(tableItems);
     
-    
-    
-    public DirectoryToolFXView() {
-		super();
+    public DirectoryToolFXView(Stage stage) {
+		this.controller = new DirectoryToolController(this);
+		this.stage = stage;
 		buildLayout();
 		initTable();
+		
+		ContextMenu menu = new ContextMenu();
+
+		MenuItem add = new MenuItem("Add New Dir");
+		MenuItem rename = new MenuItem("Rename Current Dir");
+		MenuItem move = new MenuItem("Move Files To...");
+		MenuItem delete = new MenuItem("Delete Directory");
+		MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
+		MenuItem reorder = new MenuItem("Reorder Directory...");
+
+		menu.getItems().addAll(reorder, add, rename, move, delete, deleteIntermediate);
+
+		table.setContextMenu(menu);
+
+		rootDirButton.setOnAction(new FxActionAdapter(new ChooseRootDirCommand(controller)));
+		
+//		add.setOnAction(e -> controller.addDirectory());
+//		rename.setOnAction(e -> controller.renameDirectory());
+//		delete.setOnAction(e -> controller.deleteDirectory());
+
 	}
 
-    private void initTable() {
-
-        TableColumn<Path, String> nameCol = new TableColumn<>("Directory");
-        nameCol.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().getFileName().toString())
-        );
-
-        TableColumn<Path, String> pathCol = new TableColumn<>("Path");
-        pathCol.setCellValueFactory(c ->
-            new SimpleStringProperty(c.getValue().toString())
-        );
-
-        table.getColumns().setAll(nameCol, pathCol);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
-        
-        
-
-        table.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-            //controller.onDirectorySelected();
-        });
-        
-        ContextMenu menu = new ContextMenu();
-
-        MenuItem add = new MenuItem("Add New Dir");
-        MenuItem rename = new MenuItem("Rename Current Dir");
-        MenuItem move = new MenuItem("Move Files To...");
-        MenuItem delete = new MenuItem("Delete Directory");
-        MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
-        MenuItem reorder = new MenuItem("Reorder Directory...");
-
-        menu.getItems().addAll(reorder, add, rename, move, delete, deleteIntermediate);
-
-        table.setContextMenu(menu);
-    }
+    
 
 	private void buildLayout() {
 
@@ -99,28 +92,36 @@ public class DirectoryToolFXView extends BorderPane {
         form.setVgap(10);
         form.setPadding(new Insets(15));
 
-        form.add(new Label("Root dir"), 0, 0);
-        form.add(rootDirField, 1, 0);
-        form.add(rootDirButton, 2, 0);
+        form.add(new Label("Root dir"), 	0, 0);
+        form.add(rootDirField, 				1, 0, 2, 1 );
+        form.add(rootDirButton, 			3, 0);
 
-        form.add(new Label("Dir da cercare"), 0, 1);
-        form.add(searchDirField, 1, 1);
-        form.add(searchDirButton, 2, 1);
-        
-        ColumnConstraints col1 = new ColumnConstraints();
-        ColumnConstraints col2 = new ColumnConstraints();
-
-        // La colonna 2 (indice 1) deve crescere sempre
-        col2.setHgrow(Priority.ALWAYS);
-
-        form.getColumnConstraints().addAll(col1, col2);
+        form.add(new Label("Dir search"), 	0, 1);
+        form.add(searchDirField, 			1, 1, 2, 1 );
+        form.add(searchDirButton, 			3, 1);
 
         emptyButton.setToggleGroup(actionGroup);
         cancelButton.setToggleGroup(actionGroup);
         emptyButton.setSelected(true);
 
-        HBox radios = new HBox(10, emptyButton, cancelButton, actionButton);
-        form.add(radios, 1, 2, 2, 1);
+        form.add(emptyButton, 				1, 2);
+        form.add(cancelButton, 				2, 2);
+        form.add(actionButton, 				3, 2);
+        
+//        HBox radios = new HBox(10, emptyButton, cancelButton, actionButton);
+//        form.add(radios, 1, 2, 2, 1);
+        rootDirButton.setPrefWidth(100.0);
+        searchDirButton.setPrefWidth(100.0);
+        actionButton.setPrefWidth(100.0);
+        ColumnConstraints col1 = new ColumnConstraints();
+        ColumnConstraints col2 = new ColumnConstraints();
+        ColumnConstraints col3 = new ColumnConstraints();
+        ColumnConstraints col4 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+        col3.setHgrow(Priority.ALWAYS);
+        col4.setFillWidth(true);
+        form.getColumnConstraints().addAll(col1, col2, col3, col4);
+        
 
         setTop(form);
         setCenter(table);
@@ -129,5 +130,52 @@ public class DirectoryToolFXView extends BorderPane {
         status.setPadding(new Insets(10));
         setBottom(status);
     }
+
+    
+    private void initTable() {
+       
+        TableColumn<DirectoryScanResult, String> nameCol = new TableColumn<>("Name");
+        nameCol.setCellValueFactory(c -> c.getValue().nameProperty());
+
+        TableColumn<DirectoryScanResult, String> pathCol = new TableColumn<>("Path");
+        pathCol.setCellValueFactory(c -> c.getValue().pathProperty());
+
+        TableColumn<DirectoryScanResult, Number> sizeCol = new TableColumn<>("Size");
+        sizeCol.setCellValueFactory(c -> c.getValue().sizeProperty());
+ 
+        table.getColumns().setAll(List.of(nameCol, pathCol, sizeCol) );
+        
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
+
+        table.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
+           // controller.onDirectorySelected();
+        });
+    }
+
+
+
+	public ProgressBar getProgress() {
+		return progress;
+	}
+
+
+
+	public TextField getRootDirField() {
+		return rootDirField;
+	}
+	
+    public ObservableList<DirectoryScanResult> getTableItems() {
+		return tableItems;
+	}
+
+
+	public Stage getStage() {
+		return stage;
+	}
+
+	public Object setGlobalReport(String msg) {
+		// TODO Auto-generated method stub
+		return "";
+	}
 
 }
