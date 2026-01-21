@@ -1,0 +1,55 @@
+# ==========================================
+# Java + Maven + Eclipse .gitignore
+# ==========================================
+
+# Compiled class files
+*.class
+
+# Maven build directory
+/target/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Eclipse project files
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA project files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code project files
+.vscode/
+
+# Mac and Windows system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Backup and build artifacts
+/out/
+bin/
+build/
+
+# Maven wrapper files (optional to include)
+!/.mvn/wrapper/maven-wrapper.jar
+.mvn/
+mvnw
+mvnw.cmd
+
+# Other temporary or cache directories
+/.metadata/
+/target/
+/tmp/
+/.cache/
+/logs/
+/coverage/
+
