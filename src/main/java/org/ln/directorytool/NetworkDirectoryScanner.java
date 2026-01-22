@@ -57,6 +57,7 @@ public class NetworkDirectoryScanner extends Task<Void> {
                     } else {
                         r.files++;
                     }
+                    r.updateSize();
                 }
             } catch (Exception ignored) {}
 

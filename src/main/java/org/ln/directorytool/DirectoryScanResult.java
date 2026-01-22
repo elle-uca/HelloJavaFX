@@ -2,26 +2,29 @@ package org.ln.directorytool;
 
 import java.nio.file.Path;
 
-import javafx.beans.property.LongProperty;
-import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 
 public class DirectoryScanResult {
-    public final Path dir;
+
+
+	public final Path dir;
     public int files = 0;
     public int subDirs = 0;
     public boolean completed = false;
     
     private final StringProperty name = new SimpleStringProperty();
     private final StringProperty path = new SimpleStringProperty();
-    private final LongProperty size = new SimpleLongProperty();
+    private final StringProperty size = new SimpleStringProperty();
 
     public DirectoryScanResult(Path dir) {
         this.dir = dir;
         this.name.set(dir.toFile().getName());
         this.path.set(dir.toFile().getAbsolutePath());
-        this.size.set(0);
+    }
+    
+    public void updateSize() {
+        size.set(files + " file, " + subDirs + " dir");
     }
 
 	public StringProperty nameProperty() {
@@ -32,10 +35,12 @@ public class DirectoryScanResult {
 		return path;
 	}
 
-	public LongProperty sizeProperty() {
+	public StringProperty sizeProperty() {
 		return size;
 	}
 
-
+    public Path getDir() {
+		return dir;
+	}
     
 }

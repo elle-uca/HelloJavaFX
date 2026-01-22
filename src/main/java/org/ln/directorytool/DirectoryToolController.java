@@ -1,10 +1,16 @@
 package org.ln.directorytool;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.prefs.Preferences;
 
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextInputDialog;
 import javafx.stage.DirectoryChooser;
 
 /**
@@ -39,23 +45,25 @@ public class DirectoryToolController {
         //this.statsService = new DirectoryStatsService();
     }
 
+    
+    
+    
     /* -------------------------------------------------
      *  TABLE / DIRECTORY SCAN
      * ------------------------------------------------- */
 
  
     public void refreshTable() {
-    	
-    	String dir = view.getRootDirField().getText();
+     	String dir = view.getRootDirField().getText();
     	Path root = new File(dir).toPath();
         if (root == null) return;
-//
+
         var items = view.getTableItems();
         items.clear();
 
         view.getProgress().setVisible(true);
         view.getProgress().setProgress(ProgressBar.INDETERMINATE_PROGRESS);
-//        view.setGlobalReport("Scansione rete in corso...");
+        view.setGlobalReport("Scansione rete in corso...");
 
         NetworkDirectoryScanner task = new NetworkDirectoryScanner(
                 root,
@@ -66,8 +74,6 @@ public class DirectoryToolController {
                     view.setGlobalReport("Caricate " + items.size() + " directory");
                 }
         );
-        
-
         Thread t = new Thread(task, "network-scan");
         t.setDaemon(true);
         t.start();
@@ -124,38 +130,68 @@ public class DirectoryToolController {
      * Opens a chooser to pick the root directory and initializes the view state.
      */
     public void chooseRootDirectory() {
-    	  String lastPath = prefs.get(LAST_DIR_KEY, null);
+    	String lastPath = prefs.get(LAST_DIR_KEY, null);
 
-    	  DirectoryChooser chooser = new DirectoryChooser();
-    	    chooser.setTitle("Seleziona una directory");
+    	DirectoryChooser chooser = new DirectoryChooser();
+    	chooser.setTitle("Seleziona una directory");
 
-    	    if (lastPath != null) {
-    	        File lastDir = new File(lastPath);
-    	        if (lastDir.exists() && lastDir.isDirectory()) {
-    	            chooser.setInitialDirectory(lastDir);
-    	        }
-    	    }
+    	if (lastPath != null) {
+    		File lastDir = new File(lastPath);
+    		if (lastDir.exists() && lastDir.isDirectory()) {
+    			chooser.setInitialDirectory(lastDir);
+    		}
+    	}
 
-    	    File dir = chooser.showDialog(view.getStage());
-    	    if (dir == null) {
-    	        return;
-    	    }
+    	File dir = chooser.showDialog(view.getStage());
+    	if (dir == null) {
+    		return;
+    	}
 
-    	    Path root = dir.toPath();
+    	Path root = dir.toPath();
+    	view.getRootDirField().setText(root.toString());
+    	prefs.put(LAST_DIR_KEY, root.toString());
 
-    	    // 🔹 Aggiorna stato applicazione
-    	    //view.setSelectedDir(root);
-    	    view.getRootDirField().setText(root.toString());
-    	    prefs.put(LAST_DIR_KEY, root.toString());
-
-    	    // 🔹 Avvia scansione
-    	   // refreshTable();
-    	 
-        refreshTable();
+    	refreshTable();
 //        view.getSearchDirButton().setEnabled(true);
-        
-
     }
+    
+    
+    
+
+    /**
+     * Updates labels and optional actions when a directory row is selected.
+     */
+    public void onDirectorySelected() {
+    	DirectoryScanResult selected = view.getSelectedItem();
+       if (selected == null) {
+            clearDirectoryInfo();
+            return;
+        }
+    	Path dir = selected.dir;
+
+        // Label 1: info directory
+    	view.setSelected("Directory selezionata: " + dir.toAbsolutePath());
+
+        // Label 2: statistiche
+        try {
+            DirectoryStatsService.DirStats stats =
+            		DirectoryStatsService.countRecursive(dir);
+
+            view.setDetail(
+                    "Contenuto: " +
+                    stats.files + " file, " +
+                    stats.directories + " directory"
+            );
+
+        } catch (IOException ex) {
+        	 view.setDetail("Errore lettura contenuto");
+        }
+
+        // opzionale: aggiorna menu Move Files
+       // updateMoveFilesAvailability();
+    }
+    
+    
 //
 //    /**
 //     * Performs the primary action depending on whether a selection exists.
@@ -338,79 +374,204 @@ public class DirectoryToolController {
 //
 //        moveItem.setEnabled(enabled);
 //    }
-//
-//    /* -------------------------------------------------
-//     *  DELETE SINGLE DIRECTORY (popup)
-//     * ------------------------------------------------- */
-//
-//    /**
-//     * Deletes the selected directory after user confirmation and statistics checks.
-//     */
-//   public  void deleteSelectedDirectory() {
-//
-//        int row = crocodileView.getSelectedRow();
-//        if (row < 0) {
-//            showWarning("Seleziona una directory.");
-//            return;
-//        }
-//
-//        //Path dir = crocodileView.getModel().getDirectoryAt(row);
-//        DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//        Path dir = r.dir;
-//
-//        // First confirmation: deletion of the directory itself
-//        int confirmDir = JOptionPane.showConfirmDialog(
-//                crocodileView,
-//                "Vuoi cancellare la directory?\n\n" + dir.toAbsolutePath(),
-//                "Conferma cancellazione",
-//                JOptionPane.YES_NO_OPTION,
-//                JOptionPane.WARNING_MESSAGE
-//        );
-//
-//        if (confirmDir != JOptionPane.YES_OPTION) {
-//            return;
-//        }
-//
-//        // Compute statistics only when the directory is not empty
-//        DirectoryStatsService.DirStats stats;
-//        try {
-//            stats = statsService.countRecursive(dir);
-//        } catch (IOException ex) {
-//            showError("Errore nel conteggio del contenuto", ex);
-//            return;
-//        }
-//
-//        // Second confirmation: warn about deleting contents
-//        if (stats.files > 0 || stats.directories > 0) {
-//
-//            int confirmContent = JOptionPane.showConfirmDialog(
-//                    crocodileView,
-//                    "ATTENZIONE: la directory non è vuota.\n\n" +
-//                    "Verranno eliminati:\n" +
-//                    "(" + stats.files + " file, " +
-//                    stats.directories + " directory)\n\n" +
-//                    "Vuoi cancellare ANCHE tutto il contenuto?",
-//                    "Conferma cancellazione contenuto",
-//                    JOptionPane.YES_NO_OPTION,
-//                    JOptionPane.WARNING_MESSAGE
-//            );
-//
-//            if (confirmContent != JOptionPane.YES_OPTION) {
-//                return;
-//            }
-//        }
-//
-//        // Execute the deletion after confirmations
-//        try {
-//            DirectoryUtils.deleteDirectoryRecursively(dir);
-//        } catch (Exception ex) {
-//            showError("Errore durante la cancellazione", ex);
-//            return;
-//        }
-//
-//        refreshTable();
-//        crocodileView.setGlobalReport("Caricate "+crocodileView.getDirList().size()+" directory" );
-//    }
+
+    /* -------------------------------------------------
+     *  DELETE SINGLE DIRECTORY (popup)
+     * ------------------------------------------------- */
+
+    /**
+     * Deletes the selected directory after user confirmation and statistics checks.
+     */
+    public void deleteSelectedDirectory() {
+        DirectoryScanResult selected = view.getSelectedItem();
+
+        if (selected == null) {
+            showWarning("Seleziona una directory.");
+            return;
+        }
+
+        Path dir = selected.getDir();
+
+        // -------------------------------------------------
+        // 1) Prima conferma: cancellazione directory
+        // -------------------------------------------------
+        if (!confirm("Conferma cancellazione", 
+        		"Vuoi cancellare la directory?", 
+        		dir.toAbsolutePath().toString())){
+            return;
+        }
+        
+        // -------------------------------------------------
+        // 2) Conteggio contenuto (potenzialmente lento)
+        // -------------------------------------------------
+        DirectoryStatsService.DirStats stats;
+        try {
+        	stats = DirectoryStatsService.countRecursive(dir);
+        } catch (IOException ex) {
+            showError("Errore nel conteggio del contenuto", ex);
+            return;
+        }
+
+        // -------------------------------------------------
+        // 3) Seconda conferma: directory non vuota
+        // -------------------------------------------------
+        if (stats.files > 0 || stats.directories > 0) {
+
+            String msg = "Verranno eliminati:\n" +
+                    stats.files + " file\n" +
+                    stats.directories + " directory\n\n" +
+                    "Vuoi cancellare ANCHE tutto il contenuto?" ;
+            
+            if (!confirm("Conferma cancellazione contenuto", 
+            		"ATTENZIONE: la directory non è vuota", msg)){
+                return;
+            }
+         }
+
+        // -------------------------------------------------
+        // 4) Cancellazione effettiva
+        // -------------------------------------------------
+        try {
+            DirectoryUtils.deleteDirectoryRecursively(dir);
+        } catch (Exception ex) {
+            showError("Errore durante la cancellazione", ex);
+            return;
+        }
+
+        // -------------------------------------------------
+        // 5) Refresh UI 
+        // -------------------------------------------------
+        refreshTable();
+        view.setGlobalReport(
+                "Caricate " + view.getTableItems().size() + " directory");
+    }
+    
+    /* -------------------------------------------------
+     *  RENAME DIRECTORY 
+     * ------------------------------------------------- */    
+    
+    /**
+     * Renames the currently selected directory after validation.
+     */
+    public void renameCurrentDir() {
+    	DirectoryScanResult selected = view.getSelectedItem();
+
+    	if (selected == null) {
+    		showWarning("Seleziona una directory.");
+    		return;
+    	}
+
+    	Path dir = selected.getDir();
+    	Path parent = dir.getParent();
+
+    	if (parent == null) {
+    		showWarning("Impossibile rinominare la directory root.");
+    		return;
+    	}
+
+    	// -------------------------------------------------
+    	// Dialog JavaFX per inserire il nuovo nome
+    	// -------------------------------------------------
+    	TextInputDialog dialog =
+    			new TextInputDialog(dir.getFileName().toString());
+
+    	dialog.initOwner(view.getStage());
+    	dialog.setTitle("Rinomina directory");
+    	dialog.setHeaderText("Nuovo nome directory");
+    	dialog.setContentText("Nome:");
+
+    	Optional<String> result = dialog.showAndWait();
+    	if (result.isEmpty()) {
+    		return; // annullato
+    	}
+
+    	String newName = result.get().trim();
+    	if (newName.isBlank()) {
+    		showWarning("Nome directory non valido.");
+    		return;
+    	}
+
+    	Path target = parent.resolve(newName);
+
+    	if (Files.exists(target)) {
+    		showWarning("Esiste già una directory con questo nome.");
+    		return;
+    	}
+
+    	// -------------------------------------------------
+    	// Rinomina effettiva
+    	// -------------------------------------------------
+    	try {
+    		Files.move(dir, target);
+    	} catch (IOException ex) {
+    		showError("Errore rinomina directory", ex);
+    		return;
+    	}
+
+    	// -------------------------------------------------
+    	// Refresh UI
+    	// -------------------------------------------------
+    	refreshTable();
+    }
+
+    /* -------------------------------------------------
+     *  ADD NEW DIRECTORY 
+     * ------------------------------------------------- */     
+    
+    /**
+     * Adds a new subdirectory inside the currently selected directory.
+     */
+    public void addNewDir() {
+    	DirectoryScanResult selected = view.getSelectedItem();
+
+    	if (selected == null) {
+    		showWarning("Seleziona una directory.");
+    		return;
+    	}
+
+    	Path parentDir = selected.getDir();
+
+    	// -------------------------------------------------
+    	// Dialog JavaFX per inserire il nome della directory
+    	// -------------------------------------------------
+    	TextInputDialog dialog = new TextInputDialog("");
+    	dialog.initOwner(view.getStage());
+    	dialog.setTitle("Nuova directory");
+    	dialog.setHeaderText("Crea nuova directory");
+    	dialog.setContentText("Nome:");
+
+    	Optional<String> result = dialog.showAndWait();
+    	if (result.isEmpty()) {
+    		return; // annullato
+    	}
+
+    	String name = result.get().trim();
+    	if (name.isBlank()) {
+    		showWarning("Nome directory non valido.");
+    		return;
+    	}
+
+    	Path newDir = parentDir.resolve(name);
+
+    	// -------------------------------------------------
+    	// Creazione directory
+    	// -------------------------------------------------
+    	try {
+    		Files.createDirectory(newDir);
+    	} catch (IOException ex) {
+    		showError("Errore creazione directory", ex);
+    		return;
+    	}
+
+    	// -------------------------------------------------
+    	// Refresh UI
+    	// -------------------------------------------------
+    	refreshTable();
+    }
+
+    
+    
+    
 //
 //    /**
 //     * Removes an intermediate directory by flattening its contents into the parent.
@@ -588,39 +749,39 @@ public class DirectoryToolController {
 //
 //
 //
-//
-//
-//    /* -------------------------------------------------
-//     *  UTIL
-//     * ------------------------------------------------- */
-//
-//    private boolean confirm(String msg) {
-//        return JOptionPane.showConfirmDialog(
-//                crocodileView,
-//                msg,
-//                "Conferma",
-//                JOptionPane.YES_NO_OPTION,
-//                JOptionPane.WARNING_MESSAGE
-//        ) == JOptionPane.YES_OPTION;
-//    }
-//
-//    private void showError(String title, Exception ex) {
-//        JOptionPane.showMessageDialog(
-//                crocodileView,
-//                title + "\n\n" + ex.getMessage(),
-//                "Errore",
-//                JOptionPane.ERROR_MESSAGE
-//        );
-//    }
-//
-//    private void showWarning(String msg) {
-//        JOptionPane.showMessageDialog(
-//                crocodileView,
-//                msg,
-//                "Attenzione",
-//                JOptionPane.WARNING_MESSAGE
-//        );
-//    }
+
+
+    /* -------------------------------------------------
+     *  UTIL
+     * ------------------------------------------------- */
+
+    private boolean confirm(String title, String head, String msg) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.initOwner(view.getStage());
+        alert.setTitle(title);
+        alert.setHeaderText(head);
+        alert.setContentText(msg);
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+    
+    private void showError(String title, Exception ex) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.initOwner(view.getStage());
+        alert.setTitle("Errore");
+        alert.setHeaderText(title);
+        alert.setContentText(ex != null ? ex.getMessage() : null);
+        alert.showAndWait();
+    }
+    
+    private void showWarning(String msg) {
+    	Alert alert = new Alert(Alert.AlertType.WARNING);
+    	alert.initOwner(view.getStage());  
+    	alert.setTitle("Attenzione");
+    	alert.setHeaderText(null);
+    	alert.setContentText(msg);
+    	alert.showAndWait();
+    }
 //
 ////    private static class DirCount {
 ////        int files;
@@ -639,140 +800,18 @@ public class DirectoryToolController {
 //
 //
 //
-//
-//    /**
-//     * Adds a new subdirectory inside the currently selected directory.
-//     */
-//    public void addNewDir() {
-//        int row = crocodileView.getSelectedRow();
-//        if (row < 0) {
-//            showWarning("Seleziona una directory.");
-//            return;
-//        }
-//
-//        DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//        Path parentDir = r.dir;
-//       // Path parentDir = crocodileView.getModel().getDirectoryAt(row);
-//
-//        FileNameDialog dialog = new FileNameDialog(crocodileView, "");
-//        dialog.setVisible(true);
-//
-//        if (dialog.getReturnStatus() == FileNameDialog.RET_CANCEL) {
-//            return;
-//        }
-//
-//        String name = dialog.getText();
-//        if (name == null || name.isBlank()) {
-//            showWarning("Nome directory non valido.");
-//            return;
-//        }
-//
-//        Path newDir = parentDir.resolve(name);
-//
-//        try {
-//            Files.createDirectory(newDir);
-//        } catch (IOException ex) {
-//            showError("Errore creazione directory", ex);
-//            return;
-//        }
-//
-//        refreshTable();
-//    }
-//
-//    /**
-//     * Renames the currently selected directory after validation.
-//     */
-//    public void renameCurrentDir() {
-//
-//        int row = crocodileView.getSelectedRow();
-//        if (row < 0) {
-//            showWarning("Seleziona una directory.");
-//            return;
-//        }
-//
-//        DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//        Path dir = r.dir;
-//        //Path dir = crocodileView.getModel().getDirectoryAt(row);
-//        Path parent = dir.getParent();
-//
-//        if (parent == null) {
-//            showWarning("Impossibile rinominare la directory root.");
-//            return;
-//        }
-//
-//        FileNameDialog dialog =
-//                new FileNameDialog(crocodileView, dir.getFileName().toString());
-//        dialog.setVisible(true);
-//
-//        if (dialog.getReturnStatus() == FileNameDialog.RET_CANCEL) {
-//            return;
-//        }
-//
-//        String newName = dialog.getText();
-//        if (newName == null || newName.isBlank()) {
-//            showWarning("Nome directory non valido.");
-//            return;
-//        }
-//
-//        Path target = parent.resolve(newName);
-//
-//        if (Files.exists(target)) {
-//            showWarning("Esiste già una directory con questo nome.");
-//            return;
-//        }
-//
-//        try {
-//            Files.move(dir, target);
-//        } catch (IOException ex) {
-//            showError("Errore rinomina directory", ex);
-//            return;
-//        }
-//
-//        refreshTable();
-//    }
-//
-//    /**
-//     * Updates labels and optional actions when a directory row is selected.
-//     */
-//    public void onDirectorySelected() {
-//
-//        int row = crocodileView.getSelectedRow();
-//        if (row < 0) {
-//            clearDirectoryInfo();
-//            return;
-//        }
-//
-//        //Path dir = crocodileView.getModel().getDirectoryAt(row);
-//    	DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//    	Path dir = r.dir;
-//
-//        // Label 1: info directory
-//        crocodileView.setSelected("Directory selezionata: " + dir.toAbsolutePath());
-//
-//        // Label 2: statistiche
-//        try {
-//            DirectoryStatsService.DirStats stats =
-//                    statsService.countRecursive(dir);
-//
-//            crocodileView.setDetail(
-//                    "Contenuto: " +
-//                    stats.files + " file, " +
-//                    stats.directories + " directory"
-//            );
-//
-//        } catch (IOException ex) {
-////            crocodileView.getInfoLabel()
-////                    .setText("Errore lettura contenuto");
-//        }
-//
-//        // opzionale: aggiorna menu Move Files
-//       // updateMoveFilesAvailability();
-//    }
-//
-//    private void clearDirectoryInfo() {
-////        crocodileView.getReportLabel().setText("");
-////        crocodileView.getInfoLabel().setText("");
-//    }
+
+
+
+
+
+
+    private void clearDirectoryInfo() {
+    	view.setSelected("");
+    	view.setDetail("");
+    }
+
+
 
 
 

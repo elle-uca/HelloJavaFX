@@ -22,7 +22,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class DirectoryToolFXView extends BorderPane {
@@ -41,9 +40,9 @@ public class DirectoryToolFXView extends BorderPane {
 
     private final ToggleGroup actionGroup = new ToggleGroup();
 
-    private final Label globalReportLabel = new Label();
-    private final Label selectedLabel = new Label();
-    private final Label detailSelLabel = new Label();
+    private final Label globalReportLabel = new Label("global");
+    private final Label selectedLabel = new Label("selected");
+    private final Label detailSelLabel = new Label("detail");
 
     private final ProgressBar progress = new ProgressBar();
     private Stage stage;
@@ -62,6 +61,8 @@ public class DirectoryToolFXView extends BorderPane {
 		buildLayout();
 		initTable();
 		
+		rootDirField.setEditable(false);
+		
 		ContextMenu menu = new ContextMenu();
 
 		MenuItem add = new MenuItem("Add New Dir");
@@ -77,9 +78,9 @@ public class DirectoryToolFXView extends BorderPane {
 
 		rootDirButton.setOnAction(new FxActionAdapter(new ChooseRootDirCommand(controller)));
 		
-//		add.setOnAction(e -> controller.addDirectory());
-//		rename.setOnAction(e -> controller.renameDirectory());
-//		delete.setOnAction(e -> controller.deleteDirectory());
+		add.setOnAction(e -> controller.addNewDir());
+		rename.setOnAction(e -> controller.renameCurrentDir());
+		delete.setOnAction(e -> controller.deleteSelectedDirectory());
 
 	}
 
@@ -108,8 +109,6 @@ public class DirectoryToolFXView extends BorderPane {
         form.add(cancelButton, 				2, 2);
         form.add(actionButton, 				3, 2);
         
-//        HBox radios = new HBox(10, emptyButton, cancelButton, actionButton);
-//        form.add(radios, 1, 2, 2, 1);
         rootDirButton.setPrefWidth(100.0);
         searchDirButton.setPrefWidth(100.0);
         actionButton.setPrefWidth(100.0);
@@ -121,13 +120,25 @@ public class DirectoryToolFXView extends BorderPane {
         col3.setHgrow(Priority.ALWAYS);
         col4.setFillWidth(true);
         form.getColumnConstraints().addAll(col1, col2, col3, col4);
-        
+         
+        GridPane status = new GridPane();
+        status.setPadding(new Insets(10));
+        ColumnConstraints colLeft = new ColumnConstraints();
+        colLeft.setHgrow(Priority.ALWAYS);  
 
+        ColumnConstraints colRight = new ColumnConstraints();
+        colRight.setHgrow(Priority.NEVER);  
+
+        status.getColumnConstraints().addAll(colLeft, colRight);
+
+        status.add(globalReportLabel, 0, 0);
+        status.add(progress,          1, 0);
+
+        status.add(selectedLabel,     0, 1, 2, 1);
+        status.add(detailSelLabel,    0, 2, 2, 1);
+        
         setTop(form);
         setCenter(table);
-
-        VBox status = new VBox(5, globalReportLabel, progress, selectedLabel, detailSelLabel);
-        status.setPadding(new Insets(10));
         setBottom(status);
     }
 
@@ -140,15 +151,15 @@ public class DirectoryToolFXView extends BorderPane {
         TableColumn<DirectoryScanResult, String> pathCol = new TableColumn<>("Path");
         pathCol.setCellValueFactory(c -> c.getValue().pathProperty());
 
-        TableColumn<DirectoryScanResult, Number> sizeCol = new TableColumn<>("Size");
+        TableColumn<DirectoryScanResult, String> sizeCol = new TableColumn<>("Size");
         sizeCol.setCellValueFactory(c -> c.getValue().sizeProperty());
  
-        table.getColumns().setAll(List.of(nameCol, pathCol, sizeCol) );
+        table.getColumns().setAll(List.of(pathCol, nameCol, sizeCol) );
         
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
 
         table.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
-           // controller.onDirectorySelected();
+           controller.onDirectorySelected();
         });
     }
 
@@ -173,9 +184,20 @@ public class DirectoryToolFXView extends BorderPane {
 		return stage;
 	}
 
-	public Object setGlobalReport(String msg) {
-		// TODO Auto-generated method stub
-		return "";
+	public void setGlobalReport(String st) {
+		globalReportLabel.setText(st);
+	}
+
+	public void setSelected(String st) {
+		selectedLabel.setText(st);
+	}
+
+	public void setDetail(String st) {
+		detailSelLabel.setText(st);
+	}
+	
+	public DirectoryScanResult getSelectedItem() {
+		return table.getSelectionModel().getSelectedItem();
 	}
 
 }
