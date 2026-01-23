@@ -1,5 +1,6 @@
 package org.ln.directorytool;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import org.ln.directorytool.action.ChooseRootDirCommand;
@@ -58,36 +59,16 @@ public class DirectoryToolFXView extends BorderPane {
     public DirectoryToolFXView(Stage stage) {
 		this.controller = new DirectoryToolController(this);
 		this.stage = stage;
+		rootDirField.setEditable(false);
+		rootDirButton.setOnAction(new FxActionAdapter(new ChooseRootDirCommand(controller)));
 		buildLayout();
 		initTable();
-		
-		rootDirField.setEditable(false);
-		
-		ContextMenu menu = new ContextMenu();
-
-		MenuItem add = new MenuItem("Add New Dir");
-		MenuItem rename = new MenuItem("Rename Current Dir");
-		MenuItem move = new MenuItem("Move Files To...");
-		MenuItem delete = new MenuItem("Delete Directory");
-		MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
-		MenuItem reorder = new MenuItem("Reorder Directory...");
-
-		menu.getItems().addAll(reorder, add, rename, move, delete, deleteIntermediate);
-
-		table.setContextMenu(menu);
-
-		rootDirButton.setOnAction(new FxActionAdapter(new ChooseRootDirCommand(controller)));
-		
-		add.setOnAction(e -> controller.addNewDir());
-		rename.setOnAction(e -> controller.renameCurrentDir());
-		delete.setOnAction(e -> controller.deleteSelectedDirectory());
-
+		initPopup();
 	}
 
-    
+
 
 	private void buildLayout() {
-
         GridPane form = new GridPane();
         form.setHgap(10);
         form.setVgap(10);
@@ -144,7 +125,6 @@ public class DirectoryToolFXView extends BorderPane {
 
     
     private void initTable() {
-       
         TableColumn<DirectoryScanResult, String> nameCol = new TableColumn<>("Name");
         nameCol.setCellValueFactory(c -> c.getValue().nameProperty());
 
@@ -163,13 +143,29 @@ public class DirectoryToolFXView extends BorderPane {
         });
     }
 
+    private void initPopup() {
+		ContextMenu menu = new ContextMenu();
 
+		MenuItem add = new MenuItem("Add New Dir");
+		MenuItem rename = new MenuItem("Rename Current Dir");
+		MenuItem move = new MenuItem("Move Files To...");
+		MenuItem delete = new MenuItem("Delete Directory");
+		MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
+		MenuItem reorder = new MenuItem("Reorder Directory...");
+
+		menu.getItems().addAll(reorder, add, rename, move, delete, deleteIntermediate);
+
+		table.setContextMenu(menu);
+		
+		add.setOnAction(e -> controller.addNewDir());
+		rename.setOnAction(e -> controller.renameCurrentDir());
+		delete.setOnAction(e -> controller.deleteSelectedDirectory());
+		move.setOnAction(e -> controller.moveFilesFromSelectedDir());
+     }
 
 	public ProgressBar getProgress() {
 		return progress;
 	}
-
-
 
 	public TextField getRootDirField() {
 		return rootDirField;
@@ -178,7 +174,6 @@ public class DirectoryToolFXView extends BorderPane {
     public ObservableList<DirectoryScanResult> getTableItems() {
 		return tableItems;
 	}
-
 
 	public Stage getStage() {
 		return stage;
@@ -198,6 +193,12 @@ public class DirectoryToolFXView extends BorderPane {
 	
 	public DirectoryScanResult getSelectedItem() {
 		return table.getSelectionModel().getSelectedItem();
+	}
+
+
+
+	public Path getSelectedDir() {
+		return getSelectedItem().getDir();
 	}
 
 }

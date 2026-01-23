@@ -7,8 +7,12 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.prefs.Preferences;
 
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextInputDialog;
 import javafx.stage.DirectoryChooser;
@@ -268,77 +272,101 @@ public class DirectoryToolController {
 //
 //        refreshTable();
 //    }
-//
-//    /* -------------------------------------------------
-//     *  MOVE
-//     * ------------------------------------------------- */
-//
-//    /**
-//     * Moves files or subdirectories from the selected directory to a chosen target.
-//     */
-//    public void moveFilesFromSelectedDir() {
-//
-//        int row = crocodileView.getSelectedRow();
-//        if (row < 0) return;
-//
-//        //Path source = crocodileView.getModel().getDirectoryAt(row);
-//        DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//        Path source = r.dir;
-//
-//        Object[] options = {
-//                "Solo file",
-//                "Solo directory",
-//                "File + directory"
-//        };
-//
-//        int choice = JOptionPane.showOptionDialog(
-//                crocodileView,
-//                "Cosa vuoi spostare?",
-//                "Modalità spostamento",
-//                JOptionPane.DEFAULT_OPTION,
-//                JOptionPane.QUESTION_MESSAGE,
-//                null,
-//                options,
-//                options[0]
-//        );
-//
-//        if (choice < 0) return;
-//
-//        FileMode mode = switch (choice) {
-//            case 0 -> FileMode.FILES_ONLY;
-//            case 1 -> FileMode.DIRS_ONLY;
-//            case 2 -> FileMode.FILES_AND_DIRS;
-//            default -> throw new IllegalStateException();
-//        };
-//
-//        JFileChooser fc = new JFileChooser(source.toFile());
-//        fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-//
-//        if (fc.showOpenDialog(crocodileView) != JFileChooser.APPROVE_OPTION) {
-//            return;
-//        }
-//
-//        Path target = fc.getSelectedFile().toPath();
-//        if (source.equals(target)) {
-//            showWarning("Origine e destinazione coincidono");
-//            return;
-//        }
-//
-//        if (!confirm("Confermi lo spostamento?")) return;
-//
-//        try {
-//            switch (mode) {
-//                case FILES_ONLY -> DirectoryUtils.moveFiles(source, target);
-//                case DIRS_ONLY -> DirectoryUtils.moveDirectories(source, target);
-//                case FILES_AND_DIRS -> DirectoryUtils.moveAll(source, target);
-//            }
-//        } catch (Exception ex) {
-//            showError("Errore spostamento", ex);
-//            return;
-//        }
-//
-//        refreshTable();
-//    }
+
+    /* -------------------------------------------------
+     *  MOVE
+     * ------------------------------------------------- */
+
+    
+    /**
+     * Moves files or subdirectories from the selected directory to a chosen target.
+     */
+    public void moveFilesFromSelectedDir() {
+        DirectoryScanResult selected = view.getSelectedItem();
+
+        if (selected == null) {
+            showWarning("Seleziona una directory.");
+            return;
+        }
+        
+          Path source = selected.getDir();
+
+        // -------------------------------------------------
+        // 1) Scelta modalità spostamento (ChoiceDialog)
+        // -------------------------------------------------
+        ChoiceDialog<String> choiceDialog = new ChoiceDialog<>(
+                "Solo file",
+                "Solo file",
+                "Solo directory",
+                "File + directory"
+        );
+
+        choiceDialog.initOwner(view.getStage());
+        choiceDialog.setTitle("Modalità spostamento");
+        choiceDialog.setHeaderText("Cosa vuoi spostare?");
+        choiceDialog.setContentText("Modalità:");
+
+        Optional<String> choiceRes = choiceDialog.showAndWait();
+        if (choiceRes.isEmpty()) {
+            return;
+        }
+
+        FileMode mode = switch (choiceRes.get()) {
+            case "Solo file" -> FileMode.FILES_ONLY;
+            case "Solo directory" -> FileMode.DIRS_ONLY;
+            case "File + directory" -> FileMode.FILES_AND_DIRS;
+            default -> throw new IllegalStateException();
+        };
+
+        // -------------------------------------------------
+        // 2) Scelta directory di destinazione
+        // -------------------------------------------------
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Seleziona directory di destinazione");
+        chooser.setInitialDirectory(source.toFile());
+
+        File targetDir = chooser.showDialog(view.getStage());
+        if (targetDir == null) {
+            return;
+        }
+
+        Path target = targetDir.toPath();
+        if (source.equals(target)) {
+            showWarning("Origine e destinazione coincidono");
+            return;
+        }
+
+        // -------------------------------------------------
+        // 3) Conferma finale
+        // -------------------------------------------------
+        if (!confirm("Conferma", "Conferma spostamento", "Confermi lo spostamento?")) {
+            return;
+        }
+
+        // -------------------------------------------------
+        // 4) Spostamento effettivo
+        // -------------------------------------------------
+        try {
+            switch (mode) {
+                case FILES_ONLY ->
+                        DirectoryUtils.moveFiles(source, target);
+                case DIRS_ONLY ->
+                        DirectoryUtils.moveDirectories(source, target);
+                case FILES_AND_DIRS ->
+                        DirectoryUtils.moveAll(source, target);
+            }
+        } catch (Exception ex) {
+            showError("Errore spostamento", ex);
+            return;
+        }
+
+        // -------------------------------------------------
+        // 5) Refresh UI
+        // -------------------------------------------------
+        refreshTable();
+    }
+
+    
 //    
 //    /**
 //     * Checks whether a directory has any entries.
@@ -454,6 +482,7 @@ public class DirectoryToolController {
      * Renames the currently selected directory after validation.
      */
     public void renameCurrentDir() {
+
     	DirectoryScanResult selected = view.getSelectedItem();
 
     	if (selected == null) {
@@ -461,58 +490,54 @@ public class DirectoryToolController {
     		return;
     	}
 
-    	Path dir = selected.getDir();
-    	Path parent = dir.getParent();
+        Path dir = selected.getDir();
+        Path parent = dir.getParent();
 
-    	if (parent == null) {
-    		showWarning("Impossibile rinominare la directory root.");
-    		return;
-    	}
+        if (parent == null) {
+            showWarning("Impossibile rinominare la directory root del filesystem.");
+            return;
+        }
 
-    	// -------------------------------------------------
-    	// Dialog JavaFX per inserire il nuovo nome
-    	// -------------------------------------------------
-    	TextInputDialog dialog =
-    			new TextInputDialog(dir.getFileName().toString());
+        TextInputDialog dialog =
+                new TextInputDialog(dir.getFileName().toString());
 
-    	dialog.initOwner(view.getStage());
-    	dialog.setTitle("Rinomina directory");
-    	dialog.setHeaderText("Nuovo nome directory");
-    	dialog.setContentText("Nome:");
+        dialog.initOwner(view.getStage());
+        dialog.setTitle("Rinomina directory");
+        dialog.setHeaderText("Nuovo nome directory");
 
-    	Optional<String> result = dialog.showAndWait();
-    	if (result.isEmpty()) {
-    		return; // annullato
-    	}
+        Optional<String> result = dialog.showAndWait();
+        if (result.isEmpty()) return;
 
-    	String newName = result.get().trim();
-    	if (newName.isBlank()) {
-    		showWarning("Nome directory non valido.");
-    		return;
-    	}
+        String newName = result.get().trim();
+        if (newName.isBlank()) {
+            showWarning("Nome directory non valido.");
+            return;
+        }
 
-    	Path target = parent.resolve(newName);
+        Path target = parent.resolve(newName);
+        if (Files.exists(target)) {
+            showWarning("Esiste già una directory con questo nome.");
+            return;
+        }
 
-    	if (Files.exists(target)) {
-    		showWarning("Esiste già una directory con questo nome.");
-    		return;
-    	}
+        boolean isRoot = dir.equals(view.getSelectedDir());
 
-    	// -------------------------------------------------
-    	// Rinomina effettiva
-    	// -------------------------------------------------
-    	try {
-    		Files.move(dir, target);
-    	} catch (IOException ex) {
-    		showError("Errore rinomina directory", ex);
-    		return;
-    	}
+        try {
+            Files.move(dir, target);
+        } catch (IOException ex) {
+            showError("Errore rinomina directory", ex);
+            return;
+        }
 
-    	// -------------------------------------------------
-    	// Refresh UI
-    	// -------------------------------------------------
-    	refreshTable();
+        // 🔴 CASO SPECIALE: era la root operativa
+        if (isRoot) {
+            //view.setSelectedDir(target);
+            view.getRootDirField().setText(target.toString());
+        }
+
+        refreshTable();
     }
+
 
     /* -------------------------------------------------
      *  ADD NEW DIRECTORY 
@@ -801,7 +826,16 @@ public class DirectoryToolController {
 //
 //
 
-
+    /**
+     * Indicates which file system entries should be processed during move operations.
+     *
+     * @author Luca Noale
+     */
+    public enum FileMode {
+        FILES_ONLY,
+        DIRS_ONLY,
+        FILES_AND_DIRS
+    }
 
 
 
