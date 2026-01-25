@@ -1,4 +1,4 @@
-package org.ln.directorytool;
+package org.ln.hellofx;
 
 import java.util.Scanner;
 

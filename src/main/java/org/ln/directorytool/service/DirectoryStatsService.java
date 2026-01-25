@@ -1,4 +1,4 @@
-package org.ln.directorytool;
+package org.ln.directorytool.service;
 
 import java.io.IOException;
 import java.nio.file.Files;

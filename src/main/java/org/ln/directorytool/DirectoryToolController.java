@@ -7,9 +7,12 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.prefs.Preferences;
 
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
+import org.ln.directorytool.service.DirectoryStatsService;
+import org.ln.directorytool.service.NetworkDirectoryScanner;
+import org.ln.directorytool.util.DirectoryUtils;
+import org.ln.directorytool.view.DirectoryToolFXView;
 
+import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
@@ -82,54 +85,51 @@ public class DirectoryToolController {
         t.setDaemon(true);
         t.start();
     }
-//
-//
-//
-//
-//    void displayDirectory(Path root) {
-//        try {
-//            Files.walk(root)
-//                 .filter(Files::isDirectory)
-//                 .filter(p -> !p.equals(root))
-//                 .forEach(crocodileView.getDirList()::add);
-//        } catch (IOException ex) {
-//            showError("Errore lettura directory", ex);
-//        }
-//    }
-//
-//    void displayDirectorySearch(Path root) {
-//        String searchName = crocodileView.getSearchDir();
-//        crocodileView.getDirList().clear();
-//
-//        try {
-//            Files.walk(root)
-//                 .filter(Files::isDirectory)
-//                 .filter(p -> p.getFileName().toString().equals(searchName))
-//                 .forEach(crocodileView.getDirList()::add);
-//        } catch (IOException ex) {
-//            showError("Errore ricerca directory", ex);
-//        }
-//    }
-//
-//    /* -------------------------------------------------
-//     *  ACTIONS
-//     * ------------------------------------------------- */
-//
-//
-//    
-//    /**
-//     * Executes a filtered search based on the text field and updates the table.
-//     */
-//    public void refreshSearch() {
-//        if (crocodileView.getSelectedDir() == null) return;
-//
-//        crocodileView.setSearchDir(
-//                crocodileView.getSearchDirField().getText());
-//
-//        displayDirectorySearch(crocodileView.getSelectedDir());
-//        crocodileView.getActionButton().setEnabled(true);
-//    }
-//
+
+    
+    /**
+     * Executes a filtered search based on the text field and updates the table.
+     */
+    public void refreshSearch() {
+
+        Path root = view.getRootDir();
+        if (root == null) {
+            return;
+        }
+
+        String searchName = view.getSearchDir();
+
+        if (searchName.isEmpty()) {
+            showWarning("Inserisci un nome di directory da cercare.");
+            return;
+        }
+
+        // Lista collegata alla TableView
+        ObservableList<DirectoryScanResult> items = view.getTableItems();
+
+        items.clear();
+
+        try {
+            Files.walk(root)
+                 .filter(Files::isDirectory)
+                 .filter(p -> p.getFileName() != null)
+                 .filter(p -> p.getFileName().toString().equals(searchName))
+                 .forEach(p -> items.add(new DirectoryScanResult(p)));
+
+        } catch (IOException ex) {
+            showError("Errore ricerca directory", ex);
+            return;
+        }
+
+        // Abilita eventuali azioni dipendenti dal risultato
+        //view.getActionButton().setDisable(false);
+
+        view.setGlobalReport(
+                "Trovate " + items.size() + " directory con nome \"" + searchName + "\""
+        );
+    }
+
+    
     /**
      * Opens a chooser to pick the root directory and initializes the view state.
      */
@@ -158,8 +158,11 @@ public class DirectoryToolController {
     	refreshTable();
 //        view.getSearchDirButton().setEnabled(true);
     }
-    
-    
+
+    /* -------------------------------------------------
+     *  ACTIONS
+     * ------------------------------------------------- */
+
     
 
     /**
@@ -190,7 +193,6 @@ public class DirectoryToolController {
         } catch (IOException ex) {
         	 view.setDetail("Errore lettura contenuto");
         }
-
         // opzionale: aggiorna menu Move Files
        // updateMoveFilesAvailability();
     }
@@ -483,12 +485,11 @@ public class DirectoryToolController {
      */
     public void renameCurrentDir() {
 
-    	DirectoryScanResult selected = view.getSelectedItem();
-
-    	if (selected == null) {
-    		showWarning("Seleziona una directory.");
-    		return;
-    	}
+        DirectoryScanResult selected = view.getSelectedItem();
+        if (selected == null) {
+            showWarning("Seleziona una directory.");
+            return;
+        }
 
         Path dir = selected.getDir();
         Path parent = dir.getParent();
@@ -520,7 +521,8 @@ public class DirectoryToolController {
             return;
         }
 
-        boolean isRoot = dir.equals(view.getSelectedDir());
+        Path currentRoot = view.getRootDir();
+        boolean isRoot = dir.equals(currentRoot);
 
         try {
             Files.move(dir, target);
@@ -528,8 +530,9 @@ public class DirectoryToolController {
             showError("Errore rinomina directory", ex);
             return;
         }
-
-        // 🔴 CASO SPECIALE: era la root operativa
+        System.out.println(currentRoot);
+        System.out.println(dir);
+        //  Solo se era la root operativa
         if (isRoot) {
             //view.setSelectedDir(target);
             view.getRootDirField().setText(target.toString());
@@ -537,6 +540,7 @@ public class DirectoryToolController {
 
         refreshTable();
     }
+
 
 
     /* -------------------------------------------------
@@ -595,9 +599,7 @@ public class DirectoryToolController {
     }
 
     
-    
-    
-//
+ 
 //    /**
 //     * Removes an intermediate directory by flattening its contents into the parent.
 //     */
@@ -769,11 +771,7 @@ public class DirectoryToolController {
 //	    refreshTable();
 //	}
 //
-//
-//
-//
-//
-//
+
 
 
     /* -------------------------------------------------
@@ -807,24 +805,7 @@ public class DirectoryToolController {
     	alert.setContentText(msg);
     	alert.showAndWait();
     }
-//
-////    private static class DirCount {
-////        int files;
-////        int dirs;
-////    }
-////
-////    private DirCount countFilesAndDirs(Path root) throws IOException {
-////        DirCount c = new DirCount();
-////        Files.walk(root).forEach(p -> {
-////            if (p.equals(root)) return;
-////            if (Files.isDirectory(p)) c.dirs++;
-////            else c.files++;
-////        });
-////        return c;
-////    }
-//
-//
-//
+
 
     /**
      * Indicates which file system entries should be processed during move operations.

@@ -1,5 +1,7 @@
 package org.ln.directorytool;
 
+import org.ln.directorytool.view.DirectoryToolFXView;
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;

@@ -1,10 +1,14 @@
-package org.ln.directorytool;
+package org.ln.directorytool.view;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.ln.directorytool.DirectoryScanResult;
+import org.ln.directorytool.DirectoryToolController;
 import org.ln.directorytool.action.ChooseRootDirCommand;
 import org.ln.directorytool.action.FxActionAdapter;
+import org.ln.directorytool.action.RefreshSearchCommand;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -61,6 +65,7 @@ public class DirectoryToolFXView extends BorderPane {
 		this.stage = stage;
 		rootDirField.setEditable(false);
 		rootDirButton.setOnAction(new FxActionAdapter(new ChooseRootDirCommand(controller)));
+		searchDirButton.setOnAction(new FxActionAdapter(new RefreshSearchCommand(controller)));
 		buildLayout();
 		initTable();
 		initPopup();
@@ -201,4 +206,16 @@ public class DirectoryToolFXView extends BorderPane {
 		return getSelectedItem().getDir();
 	}
 
+	public Path getRootDir() {
+     	String dir = getRootDirField().getText();
+    	Path root = new File(dir).toPath();
+		return root;
+	}
+
+
+
+	public String getSearchDir() {
+		return searchDirField.getText().trim();
+	}
+	
 }

@@ -1,4 +1,4 @@
-package org.ln.directorytool;
+package org.ln.hellofx;
 
 import javafx.application.Application;
 import javafx.beans.property.IntegerProperty;

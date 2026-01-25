@@ -1,4 +1,4 @@
-package org.ln.directorytool;
+package org.ln.directorytool.service;
 
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.function.Consumer;
+
+import org.ln.directorytool.DirectoryScanResult;
 
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
