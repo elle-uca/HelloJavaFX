@@ -64,8 +64,12 @@ public class DirectoryToolFXView extends BorderPane {
 		this.controller = new DirectoryToolController(this);
 		this.stage = stage;
 		rootDirField.setEditable(false);
-		rootDirButton.setOnAction(new FxActionAdapter(new ChooseRootDirCommand(controller)));
-		searchDirButton.setOnAction(new FxActionAdapter(new RefreshSearchCommand(controller)));
+		rootDirButton.setOnAction(new FxActionAdapter(
+				new ChooseRootDirCommand(controller)));
+		searchDirButton.setOnAction(new FxActionAdapter(
+				new RefreshSearchCommand(controller)));
+		actionButton.setOnAction(new FxActionAdapter(
+				new RefreshSearchCommand(controller)));		
 		buildLayout();
 		initTable();
 		initPopup();

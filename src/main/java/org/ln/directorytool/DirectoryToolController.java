@@ -120,7 +120,7 @@ public class DirectoryToolController {
             return;
         }
         
-        System.out.println("Refresh   "+searchName);
+       // System.out.println("Refresh   "+searchName);
 
         ObservableList<DirectoryScanResult> items = view.getTableItems();
         items.clear();
@@ -129,15 +129,16 @@ public class DirectoryToolController {
         view.getProgress().setProgress(ProgressBar.INDETERMINATE_PROGRESS);
         view.setGlobalReport("Ricerca in corso...");
 
-//        Predicate<Path> filter =
-//                p -> p.getFileName() != null &&
-//                     p.getFileName().toString().equals(searchName);
-        
+        String needle = searchName.trim().toLowerCase();
 
-          
-        Predicate<Path> filter =  p -> p.getFileName() != null;
+        Predicate<Path> filter = p -> {
+            Path name = p.getFileName();
+           // System.out.println("filter   "+name);
+            return name != null &&
+                   name.toString().toLowerCase().equals(needle);
+        };
  
-        System.out.println("filter   "+filter);
+       // System.out.println("filter   "+filter);
         NetworkDirectoryScanner task =
             new NetworkDirectoryScanner(
                 root,
