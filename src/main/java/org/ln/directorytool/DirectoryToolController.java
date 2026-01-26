@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.prefs.Preferences;
 
 import org.ln.directorytool.service.DirectoryStatsService;
@@ -34,6 +35,9 @@ public class DirectoryToolController {
     private static final Preferences prefs =
             Preferences.userRoot().node("Crocodile");
     private static final String LAST_DIR_KEY = "lastDir";
+    
+    private NetworkDirectoryScanner currentTask;
+
 
 //    private final DirectoryReorderService reorderService =
 //            new DirectoryReorderService();
@@ -52,7 +56,19 @@ public class DirectoryToolController {
         //this.statsService = new DirectoryStatsService();
     }
 
-    
+    private void startScanner(NetworkDirectoryScanner task) {
+
+        if (currentTask != null && currentTask.isRunning()) {
+            currentTask.cancel();
+        }
+
+        currentTask = task;
+
+        Thread t = new Thread(task, "network-scan");
+        t.setDaemon(true);
+        t.start();
+    }
+ 
     
     
     /* -------------------------------------------------
@@ -75,15 +91,18 @@ public class DirectoryToolController {
         NetworkDirectoryScanner task = new NetworkDirectoryScanner(
                 root,
                 items,
+                null,
                 msg -> view.setGlobalReport(msg),
                 () -> {
                     view.getProgress().setVisible(false);
                     view.setGlobalReport("Caricate " + items.size() + " directory");
                 }
         );
-        Thread t = new Thread(task, "network-scan");
-        t.setDaemon(true);
-        t.start();
+        startScanner(task);
+
+//        Thread t = new Thread(task, "network-scan");
+//        t.setDaemon(true);
+//        t.start();
     }
 
     
@@ -93,40 +112,47 @@ public class DirectoryToolController {
     public void refreshSearch() {
 
         Path root = view.getRootDir();
-        if (root == null) {
-            return;
-        }
+        if (root == null) return;
 
         String searchName = view.getSearchDir();
-
-        if (searchName.isEmpty()) {
+        if (searchName.isBlank()) {
             showWarning("Inserisci un nome di directory da cercare.");
             return;
         }
+        
+        System.out.println("Refresh   "+searchName);
 
-        // Lista collegata alla TableView
         ObservableList<DirectoryScanResult> items = view.getTableItems();
-
         items.clear();
 
-        try {
-            Files.walk(root)
-                 .filter(Files::isDirectory)
-                 .filter(p -> p.getFileName() != null)
-                 .filter(p -> p.getFileName().toString().equals(searchName))
-                 .forEach(p -> items.add(new DirectoryScanResult(p)));
+        view.getProgress().setVisible(true);
+        view.getProgress().setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        view.setGlobalReport("Ricerca in corso...");
 
-        } catch (IOException ex) {
-            showError("Errore ricerca directory", ex);
-            return;
-        }
+//        Predicate<Path> filter =
+//                p -> p.getFileName() != null &&
+//                     p.getFileName().toString().equals(searchName);
+        
 
-        // Abilita eventuali azioni dipendenti dal risultato
-        //view.getActionButton().setDisable(false);
+          
+        Predicate<Path> filter =  p -> p.getFileName() != null;
+ 
+        System.out.println("filter   "+filter);
+        NetworkDirectoryScanner task =
+            new NetworkDirectoryScanner(
+                root,
+                items,
+                filter,
+                msg -> view.setGlobalReport(msg),
+                () -> {
+                    view.getProgress().setVisible(false);
+                    view.setGlobalReport(
+                        "Trovate " + items.size() + " directory con nome \"" + searchName + "\""
+                    );
+                }
+            );
+        startScanner(task);
 
-        view.setGlobalReport(
-                "Trovate " + items.size() + " directory con nome \"" + searchName + "\""
-        );
     }
 
     

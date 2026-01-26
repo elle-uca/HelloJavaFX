@@ -21,6 +21,7 @@ public class DirectoryScanResult {
         this.dir = dir;
         this.name.set(dir.toFile().getName());
         this.path.set(dir.toFile().getAbsolutePath());
+       // updateSize();
     }
     
     public void updateSize() {
