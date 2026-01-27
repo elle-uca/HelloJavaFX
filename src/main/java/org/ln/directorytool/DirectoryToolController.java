@@ -99,10 +99,6 @@ public class DirectoryToolController {
                 }
         );
         startScanner(task);
-
-//        Thread t = new Thread(task, "network-scan");
-//        t.setDaemon(true);
-//        t.start();
     }
 
     
@@ -120,7 +116,6 @@ public class DirectoryToolController {
             return;
         }
         
-       // System.out.println("Refresh   "+searchName);
 
         ObservableList<DirectoryScanResult> items = view.getTableItems();
         items.clear();
@@ -153,7 +148,6 @@ public class DirectoryToolController {
                 }
             );
         startScanner(task);
-
     }
 
     
@@ -225,32 +219,39 @@ public class DirectoryToolController {
     }
     
     
-//
-//    /**
-//     * Performs the primary action depending on whether a selection exists.
-//     */
-//    public void executeMainAction() {
-//
-//        if (!confirm("Sei sicuro di procedere?")) return;
-//
-//       // List<Path> list = crocodileView.getModel().getDirectories();
-//        
-//        List<Path> list = crocodileView.getModel()
-//                .getRows()
-//                .stream()
-//                .map(r -> r.dir)
-//                .toList();
-//
-//        if (list != null && !list.isEmpty()) {
-//            delete(list);
-//        } else {
-//            processAllDirectoriesByName();
-//        }
-//    }
-//
-//    /* -------------------------------------------------
-//     *  DELETE / EMPTY
-//     * ------------------------------------------------- */
+
+
+
+    /* -------------------------------------------------
+     *  DELETE / EMPTY
+     * ------------------------------------------------- */
+    
+    
+	public void processDirectory() {
+		boolean deleteDir = view.isCancelSelected();
+		String action = deleteDir ? "Cancella" : "Svuota";
+		 if (!confirm("Sei sicuro di procedere?", action, "Conferma")) return;
+		 
+		 ObservableList<DirectoryScanResult> items = view.getTableItems();
+		 
+		 for (DirectoryScanResult dir : items) {
+			 Path path = dir.getDir();
+			 
+			 try {
+				 if(deleteDir) {
+					 DirectoryUtils.deleteDirectoryRecursively(path);
+				 }else {
+					 DirectoryUtils.emptyDirectory(path) ;
+				 }
+			 }catch (Exception ex) {
+               showError("Errore su directory:\n" + path, ex);
+               return;
+           }
+		}
+		 refreshTable();
+	}
+    
+    
 //
 //    /**
 //     * Deletes or empties the provided directories according to user settings.
@@ -852,6 +853,8 @@ public class DirectoryToolController {
     	view.setSelected("");
     	view.setDetail("");
     }
+
+
 
 
 

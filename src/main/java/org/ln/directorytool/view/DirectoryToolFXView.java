@@ -7,6 +7,7 @@ import java.util.List;
 import org.ln.directorytool.DirectoryScanResult;
 import org.ln.directorytool.DirectoryToolController;
 import org.ln.directorytool.action.ChooseRootDirCommand;
+import org.ln.directorytool.action.ExecuteCommandAction;
 import org.ln.directorytool.action.FxActionAdapter;
 import org.ln.directorytool.action.RefreshSearchCommand;
 
@@ -63,13 +64,15 @@ public class DirectoryToolFXView extends BorderPane {
     public DirectoryToolFXView(Stage stage) {
 		this.controller = new DirectoryToolController(this);
 		this.stage = stage;
+	    progress.setProgress(0);
+	    progress.setVisible(false);
 		rootDirField.setEditable(false);
 		rootDirButton.setOnAction(new FxActionAdapter(
 				new ChooseRootDirCommand(controller)));
 		searchDirButton.setOnAction(new FxActionAdapter(
 				new RefreshSearchCommand(controller)));
 		actionButton.setOnAction(new FxActionAdapter(
-				new RefreshSearchCommand(controller)));		
+				new ExecuteCommandAction(controller)));		
 		buildLayout();
 		initTable();
 		initPopup();
@@ -121,11 +124,11 @@ public class DirectoryToolFXView extends BorderPane {
 
         status.getColumnConstraints().addAll(colLeft, colRight);
 
-        status.add(globalReportLabel, 0, 0);
-        status.add(progress,          1, 0);
+        status.add(globalReportLabel, 		0, 0);
+        status.add(progress,          		1, 0);
 
-        status.add(selectedLabel,     0, 1, 2, 1);
-        status.add(detailSelLabel,    0, 2, 2, 1);
+        status.add(selectedLabel,     		0, 1, 2, 1);
+        status.add(detailSelLabel,    		0, 2, 2, 1);
         
         setTop(form);
         setCenter(table);
@@ -166,10 +169,10 @@ public class DirectoryToolFXView extends BorderPane {
 
 		table.setContextMenu(menu);
 		
-		add.setOnAction(e -> controller.addNewDir());
+		add.setOnAction(e -> 	controller.addNewDir());
 		rename.setOnAction(e -> controller.renameCurrentDir());
 		delete.setOnAction(e -> controller.deleteSelectedDirectory());
-		move.setOnAction(e -> controller.moveFilesFromSelectedDir());
+		move.setOnAction(e -> 	controller.moveFilesFromSelectedDir());
      }
 
 	public ProgressBar getProgress() {
@@ -204,7 +207,10 @@ public class DirectoryToolFXView extends BorderPane {
 		return table.getSelectionModel().getSelectedItem();
 	}
 
-
+	public boolean isCancelSelected() {
+		return cancelButton.isSelected();
+		
+	}
 
 	public Path getSelectedDir() {
 		return getSelectedItem().getDir();
