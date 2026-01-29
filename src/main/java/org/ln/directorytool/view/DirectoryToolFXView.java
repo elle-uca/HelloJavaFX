@@ -21,9 +21,11 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
@@ -153,26 +155,46 @@ public class DirectoryToolFXView extends BorderPane {
         table.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
            controller.onDirectorySelected();
         });
+        
+        table.setRowFactory(tv -> {
+            TableRow<DirectoryScanResult> row = new TableRow<>();
+
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 &&
+                    !row.isEmpty() &&
+                    event.getButton() == MouseButton.PRIMARY) {
+
+                    controller.openSelectedDir();
+                }
+            });
+
+            return row;
+        });
     }
 
     private void initPopup() {
 		ContextMenu menu = new ContextMenu();
 
 		MenuItem add = new MenuItem("Add New Dir");
+		MenuItem open = new MenuItem("Open Dir");
+		MenuItem openTerminal = new MenuItem("Open in terminal");
+
 		MenuItem rename = new MenuItem("Rename Current Dir");
 		MenuItem move = new MenuItem("Move Files To...");
 		MenuItem delete = new MenuItem("Delete Directory");
 		MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
 		MenuItem reorder = new MenuItem("Reorder Directory...");
 
-		menu.getItems().addAll(reorder, add, rename, move, delete, deleteIntermediate);
+		menu.getItems().addAll(add, open, openTerminal, rename, move, delete, deleteIntermediate, reorder);
 
 		table.setContextMenu(menu);
 		
-		add.setOnAction(e -> 	controller.addNewDir());
-		rename.setOnAction(e -> controller.renameCurrentDir());
-		delete.setOnAction(e -> controller.deleteSelectedDirectory());
-		move.setOnAction(e -> 	controller.moveFilesFromSelectedDir());
+		add.setOnAction(e -> 			controller.addNewDir());
+		open.setOnAction(e -> 			controller.openSelectedDir());
+		openTerminal.setOnAction(e -> 	controller.openTerminal());
+		rename.setOnAction(e -> 		controller.renameCurrentDir());
+		delete.setOnAction(e -> 		controller.deleteSelectedDirectory());
+		move.setOnAction(e -> 			controller.moveFilesFromSelectedDir());
      }
 
 	public ProgressBar getProgress() {

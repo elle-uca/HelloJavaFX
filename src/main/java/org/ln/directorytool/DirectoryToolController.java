@@ -13,6 +13,7 @@ import org.ln.directorytool.service.NetworkDirectoryScanner;
 import org.ln.directorytool.util.DirectoryUtils;
 import org.ln.directorytool.view.DirectoryToolFXView;
 
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
@@ -627,6 +628,78 @@ public class DirectoryToolController {
     }
 
     
+    /* -------------------------------------------------
+     *  OPEN DIRECTORY 
+     * ------------------------------------------------- */  
+    
+	public void openSelectedDir() {
+    	DirectoryScanResult selected = view.getSelectedItem();
+
+    	if (selected == null) {
+    		showWarning("Seleziona una directory.");
+    		return;
+    	}
+
+    	Path dir = selected.getDir();
+    	
+        try {
+        	DirectoryToolApp.getHS().showDocument(dir.toUri().toString());
+        } catch (Exception ex) {
+            showError("Impossibile aprire la directory", ex);
+        }
+		
+	}
+	
+	
+	public void openTerminal() {
+    	DirectoryScanResult selected = view.getSelectedItem();
+
+    	if (selected == null) {
+    		showWarning("Seleziona una directory.");
+    		return;
+    	}
+
+    	Path dir = selected.getDir();
+
+	    new Thread(() -> {
+	        try {
+	            String os = System.getProperty("os.name").toLowerCase();
+
+	            ProcessBuilder pb;
+
+	            if (os.contains("win")) {
+	                // Windows
+	                pb = new ProcessBuilder(
+	                        "cmd.exe", "/c", "start"
+	                );
+	                pb.directory(dir.toFile());
+
+	            } else if (os.contains("mac")) {
+	                // macOS
+	                pb = new ProcessBuilder(
+	                        "open", "-a", "Terminal", dir.toString()
+	                );
+
+	            } else {
+	                // Linux / Unix
+	                // tenta prima x-terminal-emulator (standard Debian/Ubuntu)
+	                pb = new ProcessBuilder(
+	                        "x-terminal-emulator"
+	                );
+	                pb.directory(dir.toFile());
+	            }
+
+	            pb.start();
+
+	        } catch (Exception ex) {
+	            Platform.runLater(() ->
+	                showError("Impossibile aprire il terminale", ex)
+	            );
+	        }
+	    }, "open-terminal").start();
+	}
+
+    
  
 //    /**
 //     * Removes an intermediate directory by flattening its contents into the parent.
@@ -853,6 +926,8 @@ public class DirectoryToolController {
     	view.setSelected("");
     	view.setDetail("");
     }
+
+
 
 
 
