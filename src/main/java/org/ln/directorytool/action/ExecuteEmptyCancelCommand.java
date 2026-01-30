@@ -2,11 +2,11 @@ package org.ln.directorytool.action;
 
 import org.ln.directorytool.DirectoryToolController;
 
-public class ExecuteCommandAction implements Runnable {
+public class ExecuteEmptyCancelCommand implements Runnable {
 
     private final DirectoryToolController controller;
 
-    public ExecuteCommandAction(DirectoryToolController controller) {
+    public ExecuteEmptyCancelCommand(DirectoryToolController controller) {
         this.controller = controller;
     }
 

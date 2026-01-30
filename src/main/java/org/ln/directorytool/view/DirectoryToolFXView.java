@@ -7,7 +7,7 @@ import java.util.List;
 import org.ln.directorytool.DirectoryScanResult;
 import org.ln.directorytool.DirectoryToolController;
 import org.ln.directorytool.action.ChooseRootDirCommand;
-import org.ln.directorytool.action.ExecuteCommandAction;
+import org.ln.directorytool.action.ExecuteEmptyCancelCommand;
 import org.ln.directorytool.action.FxActionAdapter;
 import org.ln.directorytool.action.RefreshSearchCommand;
 
@@ -74,7 +74,7 @@ public class DirectoryToolFXView extends BorderPane {
 		searchDirButton.setOnAction(new FxActionAdapter(
 				new RefreshSearchCommand(controller)));
 		actionButton.setOnAction(new FxActionAdapter(
-				new ExecuteCommandAction(controller)));		
+				new ExecuteEmptyCancelCommand(controller)));		
 		buildLayout();
 		initTable();
 		initPopup();
@@ -189,12 +189,13 @@ public class DirectoryToolFXView extends BorderPane {
 
 		table.setContextMenu(menu);
 		
-		add.setOnAction(e -> 			controller.addNewDir());
-		open.setOnAction(e -> 			controller.openSelectedDir());
-		openTerminal.setOnAction(e -> 	controller.openTerminal());
-		rename.setOnAction(e -> 		controller.renameCurrentDir());
-		delete.setOnAction(e -> 		controller.deleteSelectedDirectory());
-		move.setOnAction(e -> 			controller.moveFilesFromSelectedDir());
+		add.setOnAction(e -> 				controller.addNewDir());
+		open.setOnAction(e -> 				controller.openSelectedDir());
+		openTerminal.setOnAction(e -> 		controller.openTerminal());
+		rename.setOnAction(e -> 			controller.renameCurrentDir());
+		delete.setOnAction(e -> 			controller.deleteSelectedDirectory());
+		move.setOnAction(e -> 				controller.moveFilesFromSelectedDir());
+		deleteIntermediate.setOnAction(e -> controller.deleteIntermediate());
      }
 
 	public ProgressBar getProgress() {

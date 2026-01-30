@@ -9,11 +9,10 @@ import javafx.stage.Stage;
 
 public class DirectoryToolApp extends Application{
 	
-	 private static HostServices hostServices;
+	private static HostServices hostServices;
 
 	@Override
 	public void start(Stage stage) throws Exception {
-       // DirectoryToolController controller = new DirectoryToolController(); // lo stesso tuo
         DirectoryToolFXView view = new DirectoryToolFXView(stage);
 
         hostServices = getHostServices();
@@ -25,7 +24,6 @@ public class DirectoryToolApp extends Application{
         stage.setTitle("CrocodileFX");
         stage.setScene(scene);
         stage.show();
-		
 	}
 	
     public static HostServices getHS() {

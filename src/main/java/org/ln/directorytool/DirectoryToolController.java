@@ -11,6 +11,7 @@ import java.util.prefs.Preferences;
 import org.ln.directorytool.service.DirectoryStatsService;
 import org.ln.directorytool.service.NetworkDirectoryScanner;
 import org.ln.directorytool.util.DirectoryUtils;
+import org.ln.directorytool.view.DeleteDirectoryDialog;
 import org.ln.directorytool.view.DirectoryToolFXView;
 
 import javafx.application.Platform;
@@ -54,21 +55,11 @@ public class DirectoryToolController {
      */
     public DirectoryToolController(DirectoryToolFXView view) {
         this.view = view;
-        //this.statsService = new DirectoryStatsService();
     }
 
-    private void startScanner(NetworkDirectoryScanner task) {
+    
+    
 
-        if (currentTask != null && currentTask.isRunning()) {
-            currentTask.cancel();
-        }
-
-        currentTask = task;
-
-        Thread t = new Thread(task, "network-scan");
-        t.setDaemon(true);
-        t.start();
-    }
  
     
     
@@ -438,72 +429,143 @@ public class DirectoryToolController {
      *  DELETE SINGLE DIRECTORY (popup)
      * ------------------------------------------------- */
 
-    /**
-     * Deletes the selected directory after user confirmation and statistics checks.
-     */
     public void deleteSelectedDirectory() {
-        DirectoryScanResult selected = view.getSelectedItem();
 
+        DirectoryScanResult selected = view.getSelectedItem();
         if (selected == null) {
             showWarning("Seleziona una directory.");
             return;
         }
 
-        Path dir = selected.getDir();
+        Path dir = selected.dir;
 
-        // -------------------------------------------------
-        // 1) Prima conferma: cancellazione directory
-        // -------------------------------------------------
-        if (!confirm("Conferma cancellazione", 
-        		"Vuoi cancellare la directory?", 
-        		dir.toAbsolutePath().toString())){
-            return;
-        }
-        
-        // -------------------------------------------------
-        // 2) Conteggio contenuto (potenzialmente lento)
-        // -------------------------------------------------
-        DirectoryStatsService.DirStats stats;
+        DirectoryContent content;
         try {
-        	stats = DirectoryStatsService.countRecursive(dir);
+            content = DirectoryContentAnalyzer.analyze(dir);
         } catch (IOException ex) {
-            showError("Errore nel conteggio del contenuto", ex);
+            showError("Impossibile analizzare la directory", ex);
             return;
         }
 
-        // -------------------------------------------------
-        // 3) Seconda conferma: directory non vuota
-        // -------------------------------------------------
-        if (stats.files > 0 || stats.directories > 0) {
+        DeleteContext ctx = new DeleteContext(
+            dir,
+            content,
+            dir.getParent() != null
+        );
 
-            String msg = "Verranno eliminati:\n" +
-                    stats.files + " file\n" +
-                    stats.directories + " directory\n\n" +
-                    "Vuoi cancellare ANCHE tutto il contenuto?" ;
-            
-            if (!confirm("Conferma cancellazione contenuto", 
-            		"ATTENZIONE: la directory non è vuota", msg)){
-                return;
-            }
-         }
+        DeleteDirectoryDialog dlg = new DeleteDirectoryDialog(ctx);
+        Optional<DeleteAction> result = dlg.showAndWait();
 
-        // -------------------------------------------------
-        // 4) Cancellazione effettiva
-        // -------------------------------------------------
-        try {
-            DirectoryUtils.deleteDirectoryRecursively(dir);
-        } catch (Exception ex) {
-            showError("Errore durante la cancellazione", ex);
+        if (result.isEmpty() || result.get() == DeleteAction.ABORT) {
             return;
         }
 
-        // -------------------------------------------------
-        // 5) Refresh UI 
-        // -------------------------------------------------
-        refreshTable();
-        view.setGlobalReport(
-                "Caricate " + view.getTableItems().size() + " directory");
+        executeDelete(dir, result.get());
+        
     }
+
+    
+    private void executeDelete(Path dir, DeleteAction action) {
+
+        try {
+            switch (action) {
+
+                case DELETE_ALL -> {
+                    DirectoryUtils.deleteDirectoryRecursively(dir);
+                }
+
+                case MOVE_CONTENT_UP -> {
+                    Path parent = dir.getParent();
+                    if (parent == null) {
+                        throw new IllegalStateException(
+                            "Impossibile spostare il contenuto della root"
+                        );
+                    }
+
+                    DirectoryUtils.moveAll(dir, parent);
+                    Files.delete(dir);
+                }
+
+                case ABORT -> {
+                    // non fare nulla
+                    return;
+                }
+            }
+        } catch (Exception ex) {
+            showError("Errore durante l'operazione", ex);
+            return;
+        }
+
+        refreshTable();
+    }
+
+    
+    /**
+     * Deletes the selected directory after user confirmation and statistics checks.
+     */
+//    public void deleteSelectedDirectory() {
+//        DirectoryScanResult selected = view.getSelectedItem();
+//
+//        if (selected == null) {
+//            showWarning("Seleziona una directory.");
+//            return;
+//        }
+//
+//        Path dir = selected.getDir();
+//
+//        // -------------------------------------------------
+//        // 1) Prima conferma: cancellazione directory
+//        // -------------------------------------------------
+//        if (!confirm("Conferma cancellazione", 
+//        		"Vuoi cancellare la directory?", 
+//        		dir.toAbsolutePath().toString())){
+//            return;
+//        }
+//        
+//        // -------------------------------------------------
+//        // 2) Conteggio contenuto (potenzialmente lento)
+//        // -------------------------------------------------
+//        DirectoryStatsService.DirStats stats;
+//        try {
+//        	stats = DirectoryStatsService.countRecursive(dir);
+//        } catch (IOException ex) {
+//            showError("Errore nel conteggio del contenuto", ex);
+//            return;
+//        }
+//
+//        // -------------------------------------------------
+//        // 3) Seconda conferma: directory non vuota
+//        // -------------------------------------------------
+//        if (stats.files > 0 || stats.directories > 0) {
+//
+//            String msg = "Verranno eliminati:\n" +
+//                    stats.files + " file\n" +
+//                    stats.directories + " directory\n\n" +
+//                    "Vuoi cancellare ANCHE tutto il contenuto?" ;
+//            
+//            if (!confirm("Conferma cancellazione contenuto", 
+//            		"ATTENZIONE: la directory non è vuota", msg)){
+//                return;
+//            }
+//         }
+//
+//        // -------------------------------------------------
+//        // 4) Cancellazione effettiva
+//        // -------------------------------------------------
+//        try {
+//            DirectoryUtils.deleteDirectoryRecursively(dir);
+//        } catch (Exception ex) {
+//            showError("Errore durante la cancellazione", ex);
+//            return;
+//        }
+//
+//        // -------------------------------------------------
+//        // 5) Refresh UI 
+//        // -------------------------------------------------
+//        refreshTable();
+//        view.setGlobalReport(
+//                "Caricate " + view.getTableItems().size() + " directory");
+//    }
     
     /* -------------------------------------------------
      *  RENAME DIRECTORY 
@@ -698,23 +760,26 @@ public class DirectoryToolController {
 	        }
 	    }, "open-terminal").start();
 	}
-
-    
+	
+	
+    /**
+     * Removes an intermediate directory by flattening its contents into the parent.
+     */
+	public Object deleteIntermediate() {
+		// TODO Auto-generated method stub
+		return null;
+	}
  
-//    /**
-//     * Removes an intermediate directory by flattening its contents into the parent.
-//     */
-//   public void flattenSelectedDirectory() {
+
+//	public void flattenSelectedDirectory() {
 //
-//	    int row = crocodileView.getSelectedRow();
-//	    if (row < 0) {
+//	    DirectoryScanResult selected = view.getSelectedItem();
+//	    if (selected == null) {
 //	        showWarning("Seleziona una directory.");
 //	        return;
 //	    }
-//	    DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//	    Path dir = r.dir;
 //
-//	    //Path dir = crocodileView.getModel().getDirectoryAt(row);
+//	    Path dir = selected.dir;
 //	    Path parent = dir.getParent();
 //
 //	    if (parent == null) {
@@ -722,33 +787,50 @@ public class DirectoryToolController {
 //	        return;
 //	    }
 //
-//            FlattenDirectoryDialog dlg =
-//                    new FlattenDirectoryDialog(
-//                            crocodileView,
+//	    // Dialog JavaFX
+//	    FlattenDirectoryFXDialog dialog =
+//	            new FlattenDirectoryFXDialog(
 //	                    dir.getFileName().toString(),
 //	                    parent.getFileName().toString()
 //	            );
 //
-//	    dlg.setVisible(true);
+//	    dialog.initOwner(view.getStage());
+//	    dialog.setTitle("Flatten directory");
 //
-//	    if (dlg.getReturnStatus() != FlattenDirectoryDialog.RET_OK) {
+//	    Optional<FlattenStrategy> result = dialog.showAndWait();
+//	    if (result.isEmpty()) {
 //	        return;
 //	    }
 //
-//	    DirectoryFlattenService service = new DirectoryFlattenService();
+//	    FlattenStrategy strategy = result.get();
 //
-//	    try {
-//	        service.flatten(dir, dlg.getStrategy());
-//	    } catch (Exception ex) {
-//	        showError("Errore durante l'operazione", ex);
-//	        return;
-//	    }
+//	    view.setGlobalReport("Operazione in corso...");
+//	    view.getProgress().setVisible(true);
+//	    view.getProgress().setProgress(ProgressBar.INDETERMINATE_PROGRESS);
 //
-//	    refreshTable();
-//	    crocodileView.setGlobalReport("Caricate "+crocodileView.getDirList().size()+" directory" );
-//        }
+//	    // 🔴 operazione pesante → thread separato
+//	    new Thread(() -> {
+//	        try {
+//	            DirectoryFlattenService service = new DirectoryFlattenService();
+//	            service.flatten(dir, strategy);
 //
+//	            Platform.runLater(() -> {
+//	                view.getProgress().setVisible(false);
+//	                refreshTable();
+//	                view.setGlobalReport("Operazione completata");
+//	            });
 //
+//	        } catch (Exception ex) {
+//	            Platform.runLater(() -> {
+//	                view.getProgress().setVisible(false);
+//	                showError("Errore durante l'operazione", ex);
+//	            });
+//	        }
+//	    }, "flatten-dir").start();
+//	}
+
+
+
 //    /**
 //     * Reorders a directory by inserting or replacing a path segment under the root.
 //     */
@@ -907,6 +989,15 @@ public class DirectoryToolController {
     	alert.showAndWait();
     }
 
+    private void startScanner(NetworkDirectoryScanner task) {
+        if (currentTask != null && currentTask.isRunning()) {
+             currentTask.cancel();
+         }
+         currentTask = task;
+         Thread t = new Thread(task, "network-scan");
+         t.setDaemon(true);
+         t.start();
+     }
 
     /**
      * Indicates which file system entries should be processed during move operations.
@@ -918,14 +1009,39 @@ public class DirectoryToolController {
         DIRS_ONLY,
         FILES_AND_DIRS
     }
+    
+    public enum DirectoryContent {
+    	EMPTY,
+        FILES_ONLY,
+        DIRS_ONLY,
+        FILES_AND_DIRS
+    }
 
 
+    public enum DeleteAction {
+        DELETE_ALL,
+        MOVE_CONTENT_UP,
+        ABORT
+    }
 
+    public record DeleteContext(
+    	    Path dir,
+    	    DirectoryContent content,   // EMPTY, FILES_ONLY, DIRS_ONLY, FILES_AND_DIRS
+    	    boolean hasParent            // root o no
+    	) {}
 
     private void clearDirectoryInfo() {
     	view.setSelected("");
     	view.setDetail("");
     }
+
+
+
+
+
+
+
+
 
 
 
