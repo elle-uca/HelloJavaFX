@@ -9,10 +9,14 @@ import java.util.function.Predicate;
 import java.util.prefs.Preferences;
 
 import org.ln.directorytool.service.DirectoryStatsService;
+import org.ln.directorytool.service.FXDirectoryReorderService;
+import org.ln.directorytool.service.FXDirectoryReorderService.ReorderPlan;
+import org.ln.directorytool.service.FXFilesystemService;
 import org.ln.directorytool.service.NetworkDirectoryScanner;
 import org.ln.directorytool.util.DirectoryUtils;
 import org.ln.directorytool.view.DeleteDirectoryDialog;
 import org.ln.directorytool.view.DirectoryToolFXView;
+import org.ln.directorytool.view.ReorderDirectoryDialog;
 
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -40,12 +44,12 @@ public class DirectoryToolController {
     
     private NetworkDirectoryScanner currentTask;
 
+    private final FXDirectoryReorderService reorderService =
+            new FXDirectoryReorderService();
 
-//    private final DirectoryReorderService reorderService =
-//            new DirectoryReorderService();
-//
-//    private final FilesystemService filesystemService =
-//            new FilesystemService();
+
+    private final FXFilesystemService filesystemService =
+            new FXFilesystemService();
 
 
     /**
@@ -861,10 +865,10 @@ public class DirectoryToolController {
 //	    }
 //
 //	    // Directory selezionata
-////	    Path selectedPath = crocodileView.getModel()
-////	            .getDirectoryAt(row)
-////	            .normalize()
-////	            .toAbsolutePath();
+//	    Path selectedPath = crocodileView.getModel()
+//	            .getDirectoryAt(row)
+//	            .normalize()
+//	            .toAbsolutePath();
 //	    
 //	    DirectoryScanResult r = crocodileView.getModel().getRow(row);
 //	    Path selectedPath = r.dir.normalize().toAbsolutePath();
@@ -971,7 +975,120 @@ public class DirectoryToolController {
 //
 //	    refreshTable();
 //	}
-//
+
+	public void reorderSelectedDirectory() {
+
+	    // 1️⃣ Directory selezionata (FX-style)
+	    DirectoryScanResult selected = view.getSelectedItem();
+	    if (selected == null) {
+	        showWarning("Seleziona una directory.");
+	        return;
+	    }
+
+	    Path selectedPath = selected.dir
+	            .normalize()
+	            .toAbsolutePath();
+
+	    // 2️⃣ Root operativa
+	    Path operationRoot = view.getRootDir()
+	            .normalize()
+	            .toAbsolutePath();
+
+	    // 3️⃣ Sanity check: deve stare sotto la root
+	    if (!selectedPath.startsWith(operationRoot)) {
+	        showWarning(
+	            "La directory selezionata non è sotto la Root dir:\n" +
+	            operationRoot
+	        );
+	        return;
+	    }
+
+	    // 4️⃣ Dialog FX (solo input, nessuna logica)
+	    ReorderDirectoryDialog dlg =
+	            new ReorderDirectoryDialog(
+	                    view.getStage(),
+	                    operationRoot,
+	                    selectedPath
+	            );
+
+	    Optional<ReorderDialogResult> dlgResult = dlg.showAndWait();
+	    if (dlgResult.isEmpty()) {
+	        return;
+	    }
+
+	    ReorderDialogResult ui = dlgResult.get();
+	   
+	    // 5️⃣ Pianificazione (logica di dominio)
+	    ReorderPlan plan;
+	    try {
+
+	        plan = reorderService.planReorder(
+	                operationRoot,
+	                selectedPath,
+	                ui.referenceSegment(),
+	                ui.insertedSegment(),
+	                ui.insertBefore()
+	        );
+	    } catch (IllegalArgumentException ex) {
+	        showWarning(ex.getMessage());
+	        return;
+	    }
+
+	    // 6️⃣ Safety check: home directory
+	    Path securityRoot = Path.of(System.getProperty("user.home"))
+	            .normalize()
+	            .toAbsolutePath();
+
+	    if (!plan.targetDir().startsWith(securityRoot)) {
+	        showWarning(
+	            "Operazione non consentita:\n" +
+	            "la directory deve restare sotto:\n" +
+	            securityRoot
+	        );
+	        return;
+	    }
+
+	    // 7️⃣ Target già esistente
+	    if (Files.exists(plan.targetDir())) {
+	        showWarning(
+	            "La directory di destinazione esiste già:\n" +
+	            plan.targetDir()
+	        );
+	        return;
+	    }
+
+	    // 8️⃣ Conferma finale (FX)
+	    boolean confirmed = confirm(
+	        "Verrà spostata la directory:\n\n" +
+	        plan.operatedDir() +
+	        "\n\nNuovo percorso:\n\n" +
+	        plan.targetDir() +
+	        "\n\nConfermi lo spostamento?", "", ""
+	    );
+
+	    if (!confirmed) {
+	        return;
+	    }
+
+	    // 9️⃣ Esecuzione fisica
+	    try {
+	        filesystemService.move(
+	                plan.operatedDir(),
+	                plan.targetDir()
+	        );
+	    } catch (IOException ex) {
+	        showError("Errore durante lo spostamento", ex);
+	        return;
+	    }
+
+	    // 🔟 Sync root se necessario
+	    if (plan.operatedDir().equals(operationRoot)) {
+	      //  view.setRootDir(plan.targetDir());
+	        view.getRootDirField().setText(plan.targetDir().toString());
+	    }
+
+	    refreshTable();
+	}
 
 
 
@@ -1048,6 +1165,13 @@ public class DirectoryToolController {
     	    boolean hasParent            // root o no
     	) {}
 
+    public record ReorderDialogResult(
+    	    String referenceSegment,
+    	    String insertedSegment,
+    	    boolean insertBefore
+    	) {}
+    
+    
     private void clearDirectoryInfo() {
     	view.setSelected("");
     	view.setDetail("");
