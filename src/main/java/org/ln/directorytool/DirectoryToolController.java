@@ -426,9 +426,12 @@ public class DirectoryToolController {
 //    }
 
     /* -------------------------------------------------
-     *  DELETE SINGLE DIRECTORY (popup)
+     *  DELETE DIRECTORY 
      * ------------------------------------------------- */
-
+    
+    /**
+     * Deletes the selected directory after user confirmation and statistics checks.
+     */
     public void deleteSelectedDirectory() {
 
         DirectoryScanResult selected = view.getSelectedItem();
@@ -461,7 +464,6 @@ public class DirectoryToolController {
         }
 
         executeDelete(dir, result.get());
-        
     }
 
     
@@ -471,6 +473,26 @@ public class DirectoryToolController {
             switch (action) {
 
                 case DELETE_ALL -> {
+                    DirectoryStatsService.DirStats stats;
+                    try {
+                    	stats = DirectoryStatsService.countRecursive(dir);
+                    } catch (IOException ex) {
+                        showError("Errore nel conteggio del contenuto", ex);
+                        return;
+                    }
+                    if (stats.files > 0 || stats.directories > 0) {
+
+                        String msg = "Verranno eliminati:\n" +
+                                stats.files + " file\n" +
+                                stats.directories + " directory\n\n" +
+                                "Vuoi cancellare ANCHE tutto il contenuto?" ;
+                        
+                        if (!confirm("Conferma cancellazione contenuto", 
+                        		"ATTENZIONE: la directory non è vuota", msg)){
+                            return;
+                        }
+                     }
+                	
                     DirectoryUtils.deleteDirectoryRecursively(dir);
                 }
 
@@ -487,7 +509,6 @@ public class DirectoryToolController {
                 }
 
                 case ABORT -> {
-                    // non fare nulla
                     return;
                 }
             }
@@ -500,9 +521,7 @@ public class DirectoryToolController {
     }
 
     
-    /**
-     * Deletes the selected directory after user confirmation and statistics checks.
-     */
+
 //    public void deleteSelectedDirectory() {
 //        DirectoryScanResult selected = view.getSelectedItem();
 //
@@ -709,7 +728,6 @@ public class DirectoryToolController {
         } catch (Exception ex) {
             showError("Impossibile aprire la directory", ex);
         }
-		
 	}
 	
 	

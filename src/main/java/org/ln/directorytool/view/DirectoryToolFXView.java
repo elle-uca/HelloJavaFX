@@ -182,10 +182,10 @@ public class DirectoryToolFXView extends BorderPane {
 		MenuItem rename = new MenuItem("Rename Current Dir");
 		MenuItem move = new MenuItem("Move Files To...");
 		MenuItem delete = new MenuItem("Delete Directory");
-		MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
+		//MenuItem deleteIntermediate = new MenuItem("Delete Intermediate Directory");
 		MenuItem reorder = new MenuItem("Reorder Directory...");
 
-		menu.getItems().addAll(add, open, openTerminal, rename, move, delete, deleteIntermediate, reorder);
+		menu.getItems().addAll(add, open, openTerminal, rename, move, delete,  reorder);
 
 		table.setContextMenu(menu);
 		
@@ -195,7 +195,7 @@ public class DirectoryToolFXView extends BorderPane {
 		rename.setOnAction(e -> 			controller.renameCurrentDir());
 		delete.setOnAction(e -> 			controller.deleteSelectedDirectory());
 		move.setOnAction(e -> 				controller.moveFilesFromSelectedDir());
-		deleteIntermediate.setOnAction(e -> controller.deleteIntermediate());
+		//deleteIntermediate.setOnAction(e -> controller.deleteIntermediate());
      }
 
 	public ProgressBar getProgress() {
