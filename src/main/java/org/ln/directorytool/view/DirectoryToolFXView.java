@@ -195,7 +195,7 @@ public class DirectoryToolFXView extends BorderPane {
 		rename.setOnAction(e -> 			controller.renameCurrentDir());
 		delete.setOnAction(e -> 			controller.deleteSelectedDirectory());
 		move.setOnAction(e -> 				controller.moveFilesFromSelectedDir());
-		//deleteIntermediate.setOnAction(e -> controller.deleteIntermediate());
+		reorder.setOnAction(e -> 			controller.reorderSelectedDirectory());
      }
 
 	public ProgressBar getProgress() {

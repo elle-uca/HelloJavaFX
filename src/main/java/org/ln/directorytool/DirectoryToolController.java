@@ -36,7 +36,6 @@ import javafx.stage.DirectoryChooser;
 public class DirectoryToolController {
 
     private final DirectoryToolFXView view;
-//    private final DirectoryStatsService statsService;
 
     private static final Preferences prefs =
             Preferences.userRoot().node("Crocodile");
@@ -61,11 +60,6 @@ public class DirectoryToolController {
         this.view = view;
     }
 
-    
-    
-
- 
-    
     
     /* -------------------------------------------------
      *  TABLE / DIRECTORY SCAN
@@ -124,12 +118,10 @@ public class DirectoryToolController {
 
         Predicate<Path> filter = p -> {
             Path name = p.getFileName();
-           // System.out.println("filter   "+name);
             return name != null &&
                    name.toString().toLowerCase().equals(needle);
         };
  
-       // System.out.println("filter   "+filter);
         NetworkDirectoryScanner task =
             new NetworkDirectoryScanner(
                 root,
@@ -248,56 +240,7 @@ public class DirectoryToolController {
 	}
     
     
-//
-//    /**
-//     * Deletes or empties the provided directories according to user settings.
-//     *
-//     * @param list directories to process
-//     */
-//    public void delete(List<Path> list) {
-//
-//        boolean deleteDir = crocodileView.getCancelButton().isSelected();
-//        boolean emptyDir  = crocodileView.getEmptyButton().isSelected();
-//
-//        for (Path dir : list) {
-//            try {
-//                if (deleteDir) {
-//                    DirectoryUtils.deleteDirectoryRecursively(dir);
-//                } else if (emptyDir) {
-//                    DirectoryUtils.emptyDirectory(dir);
-//                }
-//            } catch (Exception ex) {
-//                showError("Errore su directory:\n" + dir, ex);
-//                return;
-//            }
-//        }
-//
-//        refreshTable();
-//    }
-//
-//    /**
-//     * Processes all directories matching the search name under the selected root.
-//     */
-//    public void processAllDirectoriesByName() {
-//
-//        Path root = crocodileView.getSelectedDir();
-//        String name = crocodileView.getSearchDir();
-//
-//        if (root == null || name == null || name.isBlank()) return;
-//
-//        try {
-//            if (crocodileView.getCancelButton().isSelected()) {
-//                DirectoryUtils.deleteAllDirectoriesNamed(root, name);
-//            } else {
-//                DirectoryUtils.emptyAllDirectoriesNamed(root, name);
-//            }
-//        } catch (Exception ex) {
-//            showError("Errore operazione globale", ex);
-//            return;
-//        }
-//
-//        refreshTable();
-//    }
+
 
     /* -------------------------------------------------
      *  MOVE
@@ -524,72 +467,7 @@ public class DirectoryToolController {
         refreshTable();
     }
 
-    
-
-//    public void deleteSelectedDirectory() {
-//        DirectoryScanResult selected = view.getSelectedItem();
-//
-//        if (selected == null) {
-//            showWarning("Seleziona una directory.");
-//            return;
-//        }
-//
-//        Path dir = selected.getDir();
-//
-//        // -------------------------------------------------
-//        // 1) Prima conferma: cancellazione directory
-//        // -------------------------------------------------
-//        if (!confirm("Conferma cancellazione", 
-//        		"Vuoi cancellare la directory?", 
-//        		dir.toAbsolutePath().toString())){
-//            return;
-//        }
-//        
-//        // -------------------------------------------------
-//        // 2) Conteggio contenuto (potenzialmente lento)
-//        // -------------------------------------------------
-//        DirectoryStatsService.DirStats stats;
-//        try {
-//        	stats = DirectoryStatsService.countRecursive(dir);
-//        } catch (IOException ex) {
-//            showError("Errore nel conteggio del contenuto", ex);
-//            return;
-//        }
-//
-//        // -------------------------------------------------
-//        // 3) Seconda conferma: directory non vuota
-//        // -------------------------------------------------
-//        if (stats.files > 0 || stats.directories > 0) {
-//
-//            String msg = "Verranno eliminati:\n" +
-//                    stats.files + " file\n" +
-//                    stats.directories + " directory\n\n" +
-//                    "Vuoi cancellare ANCHE tutto il contenuto?" ;
-//            
-//            if (!confirm("Conferma cancellazione contenuto", 
-//            		"ATTENZIONE: la directory non è vuota", msg)){
-//                return;
-//            }
-//         }
-//
-//        // -------------------------------------------------
-//        // 4) Cancellazione effettiva
-//        // -------------------------------------------------
-//        try {
-//            DirectoryUtils.deleteDirectoryRecursively(dir);
-//        } catch (Exception ex) {
-//            showError("Errore durante la cancellazione", ex);
-//            return;
-//        }
-//
-//        // -------------------------------------------------
-//        // 5) Refresh UI 
-//        // -------------------------------------------------
-//        refreshTable();
-//        view.setGlobalReport(
-//                "Caricate " + view.getTableItems().size() + " directory");
-//    }
-    
+     
     /* -------------------------------------------------
      *  RENAME DIRECTORY 
      * ------------------------------------------------- */    
@@ -783,199 +661,11 @@ public class DirectoryToolController {
 	    }, "open-terminal").start();
 	}
 	
-	
+
+
     /**
-     * Removes an intermediate directory by flattening its contents into the parent.
+     * Reorders a directory by inserting or replacing a path segment under the root.
      */
-	public Object deleteIntermediate() {
-		// TODO Auto-generated method stub
-		return null;
-	}
- 
-
-//	public void flattenSelectedDirectory() {
-//
-//	    DirectoryScanResult selected = view.getSelectedItem();
-//	    if (selected == null) {
-//	        showWarning("Seleziona una directory.");
-//	        return;
-//	    }
-//
-//	    Path dir = selected.dir;
-//	    Path parent = dir.getParent();
-//
-//	    if (parent == null) {
-//	        showWarning("Impossibile cancellare la directory root.");
-//	        return;
-//	    }
-//
-//	    // Dialog JavaFX
-//	    FlattenDirectoryFXDialog dialog =
-//	            new FlattenDirectoryFXDialog(
-//	                    dir.getFileName().toString(),
-//	                    parent.getFileName().toString()
-//	            );
-//
-//	    dialog.initOwner(view.getStage());
-//	    dialog.setTitle("Flatten directory");
-//
-//	    Optional<FlattenStrategy> result = dialog.showAndWait();
-//	    if (result.isEmpty()) {
-//	        return;
-//	    }
-//
-//	    FlattenStrategy strategy = result.get();
-//
-//	    view.setGlobalReport("Operazione in corso...");
-//	    view.getProgress().setVisible(true);
-//	    view.getProgress().setProgress(ProgressBar.INDETERMINATE_PROGRESS);
-//
-//	    // 🔴 operazione pesante → thread separato
-//	    new Thread(() -> {
-//	        try {
-//	            DirectoryFlattenService service = new DirectoryFlattenService();
-//	            service.flatten(dir, strategy);
-//
-//	            Platform.runLater(() -> {
-//	                view.getProgress().setVisible(false);
-//	                refreshTable();
-//	                view.setGlobalReport("Operazione completata");
-//	            });
-//
-//	        } catch (Exception ex) {
-//	            Platform.runLater(() -> {
-//	                view.getProgress().setVisible(false);
-//	                showError("Errore durante l'operazione", ex);
-//	            });
-//	        }
-//	    }, "flatten-dir").start();
-//	}
-
-
-
-//    /**
-//     * Reorders a directory by inserting or replacing a path segment under the root.
-//     */
-//   public void reorderSelectedDirectory() {
-//
-//	    int row = crocodileView.getSelectedRow();
-//	    if (row < 0) {
-//	        showWarning("Seleziona una directory.");
-//	        return;
-//	    }
-//
-//	    // Directory selezionata
-//	    Path selectedPath = crocodileView.getModel()
-//	            .getDirectoryAt(row)
-//	            .normalize()
-//	            .toAbsolutePath();
-//	    
-//	    DirectoryScanResult r = crocodileView.getModel().getRow(row);
-//	    Path selectedPath = r.dir.normalize().toAbsolutePath();
-//
-//	    // Root operativa dell'app (campo "Root dir")
-//	    Path operationRoot = crocodileView.getSelectedDir()
-//	            .normalize()
-//	            .toAbsolutePath();
-//
-//	    // Sanity check: la directory deve stare sotto la root operativa
-//	    if (!selectedPath.startsWith(operationRoot)) {
-//	        showWarning(
-//	                "La directory selezionata non è sotto la Root dir:\n" +
-//	                operationRoot
-//	        );
-//	        return;
-//	    }
-//
-//            // Dialog only configures UI inputs
-//            ReorderDirectoryDialog dlg =
-//                    new ReorderDirectoryDialog(
-//	                    crocodileView,
-//	                    operationRoot,
-//	                    selectedPath
-//	            );
-//
-//	    dlg.setVisible(true);
-//
-//	    if (dlg.getReturnStatus() != ReorderDirectoryDialog.RET_OK) {
-//	        return;
-//	    }
-//
-//            // Plan the effective move based on dialog input
-//            ReorderPlan plan;
-//            try {
-//	        plan = reorderService.planReorder(
-//	                operationRoot,
-//	                selectedPath,
-//	                dlg.getReferenceSegment(),
-//	                dlg.getInsertedSegment(),
-//	                dlg.isInsertBefore()
-//	        );
-//	    } catch (IllegalArgumentException ex) {
-//	        showWarning(ex.getMessage());
-//	        return;
-//	    }
-//
-//            // Safety check to keep operations inside the user home directory
-//            Path securityRoot = Path.of(System.getProperty("user.home"))
-//                    .normalize()
-//                    .toAbsolutePath();
-//
-//	    if (!plan.targetDir().startsWith(securityRoot)) {
-//	        showWarning(
-//	                "Operazione non consentita:\n" +
-//	                "la directory deve restare sotto:\n" +
-//	                securityRoot
-//	        );
-//	        return;
-//	    }
-//
-//            // Abort if the target already exists
-//            if (Files.exists(plan.targetDir())) {
-//                showWarning(
-//	                "La directory di destinazione esiste già:\n" +
-//	                plan.targetDir()
-//	        );
-//	        return;
-//	    }
-//
-//            // Present a final preview before committing the move
-//            int confirm = JOptionPane.showConfirmDialog(
-//                    crocodileView,
-//	            "Verrà spostata la directory:\n\n" +
-//	            plan.operatedDir() +
-//	            "\n\nNuovo percorso:\n\n" +
-//	            plan.targetDir() +
-//	            "\n\nConfermi lo spostamento?",
-//	            "Conferma riorganizzazione",
-//	            JOptionPane.YES_NO_OPTION,
-//	            JOptionPane.WARNING_MESSAGE
-//	    );
-//
-//	    if (confirm != JOptionPane.YES_OPTION) {
-//	        return;
-//	    }
-//
-//            // Perform the planned move
-//            try {
-//                filesystemService.move(
-//                        plan.operatedDir(),
-//                        plan.targetDir()
-//                );
-//            } catch (IOException ex) {
-//                showError("Errore durante lo spostamento", ex);
-//                return;
-//            }
-//
-//            // If the operative root changed, synchronize the view root
-//            if (plan.operatedDir().equals(operationRoot)) {
-//                crocodileView.setSelectedDir(plan.targetDir());
-//                crocodileView.getRootDirField().setText(plan.targetDir().toString());
-//            }
-//
-//	    refreshTable();
-//	}
-
 	public void reorderSelectedDirectory() {
 
 	    // 1️⃣ Directory selezionata (FX-style)
@@ -1034,17 +724,22 @@ public class DirectoryToolController {
 	        return;
 	    }
 
-	    // 6️⃣ Safety check: home directory
-	    Path securityRoot = Path.of(System.getProperty("user.home"))
-	            .normalize()
-	            .toAbsolutePath();
 
-	    if (!plan.targetDir().startsWith(securityRoot)) {
+	 // Safety check: l'operazione deve restare dentro la root operativa scelta dall'utente
+	    Path safeRoot = operationRoot.normalize().toAbsolutePath();
+	    
+	    
+	    if (!plan.targetDir().normalize().toAbsolutePath().startsWith(safeRoot)) {
 	        showWarning(
 	            "Operazione non consentita:\n" +
 	            "la directory deve restare sotto:\n" +
-	            securityRoot
+	            safeRoot
 	        );
+	        return;
+	    }
+	    
+	    if (!plan.operatedDir().normalize().toAbsolutePath().startsWith(safeRoot)) {
+	        showWarning("Operazione non consentita: directory fuori dalla root operativa.");
 	        return;
 	    }
 
@@ -1176,21 +871,5 @@ public class DirectoryToolController {
     	view.setSelected("");
     	view.setDetail("");
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
