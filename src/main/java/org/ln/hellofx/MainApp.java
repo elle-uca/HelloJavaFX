@@ -15,6 +15,9 @@ public class MainApp extends Application {
 
         VBox root = new VBox(20, b);
         root.setStyle("-fx-padding: 40; -fx-alignment: center;");
+        
+        
+        
 
         stage.setScene(new Scene(root, 400, 300));
         stage.setTitle("Hello JavaFX");
